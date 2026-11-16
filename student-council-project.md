@@ -32,7 +32,7 @@ All files are in [student-council/](student-council/). Each Word file has a PDF 
 | Fri 8 Jan (by Sun 10 Jan) | Report and showcase |
 | After 10 Jan | Handover by 15 Jan; light follow-up about four weeks later |
 
-The endline and report can move to 11-15 Jan if needed. Any exams or events in the window still need checking against the school calendar.
+Saturdays are school days and serve as spare slots. The endline and report can move to 11-15 Jan if needed. Any exams or events in the window still need checking against the school calendar.
 
 ## Principles
 
