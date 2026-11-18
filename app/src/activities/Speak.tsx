@@ -19,8 +19,9 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
   const [clip, setClip] = useState<string | null>(null);
   const [tries, setTries] = useState(0);
   const cancel = useRef<() => void>(() => {});
-  const recog = canRecognize();
-  const rec = canRecord();
+  const [noMic, setNoMic] = useState(false);
+  const recog = canRecognize() && !noMic;
+  const rec = canRecord() && !noMic;
 
   useEffect(() => {
     setState('ready');
@@ -53,6 +54,7 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
         return;
       }
       if (!alts) {
+        if (tries >= 1) setNoMic(true);
         setState('ready');
         setHeard('');
         void speak(showHi ? 'मुझे सुनाई नहीं दिया। माइक दबाकर फिर से बोलो' : "I didn't hear you. Tap and try again", showHi ? 'hi' : 'en');
@@ -92,7 +94,11 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
         } catch {
           /* ignore */
         }
-      } else setState('ready');
+      } else {
+        // Mic blocked: let the learner say it aloud and carry on
+        setNoMic(true);
+        setState('ready');
+      }
       return;
     }
   };
