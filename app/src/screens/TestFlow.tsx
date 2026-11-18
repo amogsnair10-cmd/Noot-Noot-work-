@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { LEVELS } from '../content/curriculum';
 import { SKILLS, SKILL_INFO } from '../content/types';
-import { Confetti, Mascot, useSayOnce } from '../components/ui';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
+import { Confetti, Mascot, Tr, useHindi, useSayOnce } from '../components/ui';
 import type { StepResult } from '../lib/engine';
 import { testPct } from '../lib/engine';
 import { STAGES, scoreTest, stagePassed, stageSteps } from '../lib/placement';
@@ -9,7 +11,7 @@ import { sfx } from '../lib/sfx';
 import type { Profile, TestResult } from '../lib/store';
 import { Player } from './Player';
 
-/** Runs the placement test (form A) or the final test (form B), stage by stage. */
+/** Runs the starting test (form A) or the final test (form B), part by part. */
 export function TestFlow({ profile, form, onDone, onQuit }: { profile: Profile; form: 'A' | 'B'; onDone: (r: TestResult) => void; onQuit: () => void }) {
   const [phase, setPhase] = useState<'intro' | 'run' | 'between' | 'result'>('intro');
   const [stage, setStage] = useState(0);
@@ -45,10 +47,8 @@ export function TestFlow({ profile, form, onDone, onQuit }: { profile: Profile; 
         session={{ id: `test-${form}-${stage}`, kind: 'practice', title: 'Test', level: 1, easy: false, steps: stageSteps(form, stage), index: 0, results: [], seconds: 0, writings: [] }}
         header={
           <div className="phase">
-            <span>{STAGES[stage].emoji}</span>
-            <span className="hi">
-              भाग {stage + 1} · {STAGES[stage].hi}
-            </span>
+            <Pic e={STAGES[stage].emoji} size={30} flat />
+            <Tr en={`Part ${stage + 1} · ${STAGES[stage].en}`} hi={STAGES[stage].hi} line />
           </div>
         }
         onFinish={(s) => finishStage(s.results)}
@@ -56,101 +56,102 @@ export function TestFlow({ profile, form, onDone, onQuit }: { profile: Profile; 
       />
     );
 
-  if (phase === 'between')
-    return (
-      <div className="screen center" style={{ gap: 20 }}>
-        <Mascot size={130} mood="happy" />
-        <h1 className="hi">बहुत बढ़िया! 🎉</h1>
-        <div className="muted">Great! Let's try the next part.</div>
-        <div className="card row" style={{ width: '100%' }}>
-          <span style={{ fontSize: 40 }}>{STAGES[stage + 1].emoji}</span>
-          <div style={{ textAlign: 'left' }}>
-            <div className="hi" style={{ fontWeight: 800, fontSize: 20 }}>
-              भाग {stage + 2}: {STAGES[stage + 1].hi}
-            </div>
-            <div className="muted small">Part {stage + 2}: {STAGES[stage + 1].en}</div>
-          </div>
-        </div>
-        <button
-          className="btn block"
-          onClick={() => {
-            setStage(stage + 1);
-            setPhase('run');
-          }}
-        >
-          आगे · Next ▶
-        </button>
-      </div>
-    );
+  if (phase === 'between') return <Between next={stage + 2} stage={STAGES[stage + 1]} onGo={() => { setStage(stage + 1); setPhase('run'); }} />;
 
   return <Result r={result!} before={isFinal ? profile.placement : undefined} onDone={() => onDone(result!)} />;
 }
 
-function Intro({ isFinal, name, onGo, onBack }: { isFinal: boolean; name: string; onGo: () => void; onBack: () => void }) {
-  useSayOnce(
-    isFinal
-      ? [['अब दिखाओ तुमने क्या सीखा! कोई चिंता नहीं, बस अपनी पूरी कोशिश करो।', 'hi']]
-      : [['चलो देखते हैं तुम्हें कितनी इंग्लिश आती है। गलती हो तो कोई बात नहीं!', 'hi']],
-  );
+function Between({ next, stage, onGo }: { next: number; stage: (typeof STAGES)[number]; onGo: () => void }) {
+  const hindi = useHindi();
+  useSayOnce(hindi ? [['Great work! Now the next part.', 'en', 'cheer'], ['बहुत बढ़िया! अब अगला भाग।', 'hi']] : [['Great work! Now the next part.', 'en', 'cheer']]);
   return (
     <div className="screen center" style={{ gap: 20 }}>
-      <Mascot size={140} mood="talk" />
-      <h1 className="hi">{isFinal ? 'दिखाओ तुमने क्या सीखा!' : 'तुम्हारी इंग्लिश कहाँ तक है?'}</h1>
-      <div className="muted">{isFinal ? `Show what you know, ${name}!` : "Let's find the best place for you to start."}</div>
-      <div className="card col" style={{ width: '100%', textAlign: 'left' }}>
-        <div className="row hi" style={{ fontWeight: 700 }}>
-          <span style={{ fontSize: 28 }}>😌</span> गलती हो तो कोई बात नहीं
+      <Mascot size={140} mood="happy" float />
+      <h1>
+        <Tr en="Great work!" hi="बहुत बढ़िया!" />
+      </h1>
+      <div className="glass row" style={{ width: '100%', padding: 16 }}>
+        <Pic e={stage.emoji} size={66} />
+        <div style={{ textAlign: 'left', fontSize: 22, fontWeight: 800 }}>
+          <Tr en={`Part ${next}: ${stage.en}`} hi={stage.hi} />
         </div>
-        <div className="row hi" style={{ fontWeight: 700 }}>
-          <span style={{ fontSize: 28 }}>🔊</span> ध्यान से सुनो
-        </div>
-        <div className="row hi" style={{ fontWeight: 700 }}>
-          <span style={{ fontSize: 28 }}>⏱️</span> लगभग 5–10 मिनट
-        </div>
-        <div className="muted small">Mistakes are OK · Listen carefully · About 5–10 minutes</div>
       </div>
       <button className="btn block" onClick={onGo}>
-        शुरू करो · Start ▶
+        <Tr en="Next" hi="आगे" /> <Icon name="next" size={24} stroke={3} />
+      </button>
+    </div>
+  );
+}
+
+function Intro({ isFinal, name, onGo, onBack }: { isFinal: boolean; name: string; onGo: () => void; onBack: () => void }) {
+  const hindi = useHindi();
+  const en = isFinal ? 'Now show what you have learned. Just do your best!' : "Let's find out how much English you know. It is okay to make mistakes!";
+  const hi = isFinal ? 'अब दिखाओ तुमने क्या सीखा। बस अपनी पूरी कोशिश करो!' : 'चलो देखते हैं तुम्हें कितनी अंग्रेज़ी आती है। गलती हो तो कोई बात नहीं!';
+  useSayOnce(hindi ? [[en, 'en'], [hi, 'hi']] : [[en, 'en']]);
+  return (
+    <div className="screen center" style={{ gap: 20 }}>
+      <Mascot size={150} mood="talk" float />
+      <h1>
+        <Tr en={isFinal ? 'Show what you know!' : 'Where should you start?'} hi={isFinal ? 'दिखाओ तुमने क्या सीखा!' : 'तुम कहाँ से शुरू करोगे?'} />
+      </h1>
+      <div className="muted">{isFinal ? `You can do it, ${name}.` : 'A short test finds the best place for you to begin.'}</div>
+      <div className="glass col" style={{ width: '100%', textAlign: 'left', padding: 18, gap: 14 }}>
+        {(
+          [
+            ['😌', 'Mistakes are okay', 'गलती हो तो कोई बात नहीं'],
+            ['👂', 'Listen carefully', 'ध्यान से सुनो'],
+            ['⏱️', 'About 5 to 10 minutes', 'लगभग 5 से 10 मिनट'],
+          ] as const
+        ).map(([e, en2, hi2]) => (
+          <div key={en2} className="row" style={{ fontWeight: 700 }}>
+            <Pic e={e} size={44} />
+            <Tr en={en2} hi={hi2} />
+          </div>
+        ))}
+      </div>
+      <button className="btn block gold" onClick={onGo}>
+        <Tr en="Start" hi="शुरू करो" /> <Icon name="next" size={24} stroke={3} />
       </button>
       <button className="btn ghost small" onClick={onBack}>
-        बाद में · Later
+        Later
       </button>
     </div>
   );
 }
 
 function Result({ r, before, onDone }: { r: TestResult; before?: TestResult; onDone: () => void }) {
+  const hindi = useHindi();
   const lv = LEVELS[r.level - 1];
-  useSayOnce(
-    before
-      ? [['बहुत बढ़िया! देखो तुमने कितना सीखा।', 'hi']]
-      : [[`तुम ${lv.nameHi} लेवल से शुरू करोगे। चलो सीखें!`, 'hi']],
-  );
+  const en = before ? 'Wonderful! Look how much you learned.' : `You will start at ${lv.name}. Let's learn!`;
+  const hi = before ? 'बहुत बढ़िया! देखो तुमने कितना सीखा।' : `तुम ${lv.nameHi} से शुरू करोगे। चलो सीखें!`;
+  useSayOnce(hindi ? [[en, 'en', 'cheer'], [hi, 'hi']] : [[en, 'en', 'cheer']]);
   return (
     <div className="screen center" style={{ gap: 16 }}>
       <Confetti run />
-      <Mascot size={110} mood="happy" />
-      <div className="hi muted" style={{ fontWeight: 700 }}>{before ? 'तुम्हारा नतीजा · Your result' : 'तुम यहाँ से शुरू करोगे · You start at'}</div>
-      <div className="card col" style={{ width: '100%', alignItems: 'center', borderColor: lv.color }}>
-        <div style={{ fontSize: 60 }}>{lv.emoji}</div>
+      <Mascot size={118} mood="happy" level={r.level} float />
+      <div className="muted" style={{ fontWeight: 700 }}>
+        <Tr en={before ? 'Your result' : 'You start at'} hi={before ? 'तुम्हारा नतीजा' : 'तुम यहाँ से शुरू करोगे'} />
+      </div>
+      <div className="glass tint col" style={{ ['--tint' as string]: lv.color, width: '100%', alignItems: 'center', padding: 20, gap: 6 }}>
+        <Pic e={lv.emoji} size={84} />
         <h1 style={{ color: lv.color }}>
           Level {lv.n}: {lv.name}
         </h1>
-        <div className="hi" style={{ fontSize: 20, fontWeight: 700 }}>{lv.nameHi} · {lv.stageHi}</div>
-        <div className="muted small">{lv.stage}</div>
+        <div className="muted">{lv.stage}</div>
+        <div className="hi muted small">{lv.nameHi} · {lv.stageHi}</div>
       </div>
-      <div className="card col" style={{ width: '100%', textAlign: 'left' }}>
+      <div className="glass col" style={{ width: '100%', textAlign: 'left', padding: 18 }}>
         {SKILLS.map((k) => {
           const now = testPct(r, k);
           const was = before ? testPct(before, k) : null;
           return (
             <div key={k} className="skill">
-              <span className="ico">{SKILL_INFO[k].icon}</span>
+              <Pic e={SKILL_INFO[k].icon} size={34} flat />
               <div>
                 <div className="small" style={{ fontWeight: 700 }}>
-                  <span className="hi">{SKILL_INFO[k].hi}</span> · {SKILL_INFO[k].en}
+                  <Tr en={SKILL_INFO[k].en} hi={SKILL_INFO[k].hi} line />
                 </div>
-                <div className="bar">
+                <div className="bar" style={{ color: SKILL_INFO[k].color }}>
                   <div style={{ width: `${now ?? 0}%`, background: SKILL_INFO[k].color }} />
                   {was !== null && <span className="base" style={{ left: `${was}%` }} />}
                 </div>
@@ -159,10 +160,10 @@ function Result({ r, before, onDone }: { r: TestResult; before?: TestResult; onD
             </div>
           );
         })}
-        {before && <div className="muted small">▏= before · पहले</div>}
+        {before && <div className="muted small">The white mark shows where you started.</div>}
       </div>
-      <button className="btn block" onClick={onDone}>
-        {before ? 'देखो · See progress' : 'सीखना शुरू करो · Start learning'} ▶
+      <button className="btn block gold" onClick={onDone}>
+        <Tr en={before ? 'See my progress' : 'Start learning'} hi={before ? 'प्रगति देखो' : 'सीखना शुरू करो'} /> <Icon name="next" size={24} stroke={3} />
       </button>
     </div>
   );

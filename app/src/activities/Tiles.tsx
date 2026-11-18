@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Step } from '../lib/engine';
 import { sfx } from '../lib/sfx';
 import { speak, speakSeq } from '../lib/speech';
+import { Pic } from '../components/Doodle';
 import { Speaker } from '../components/ui';
 import type { ActProps } from './Choice';
 
@@ -35,7 +36,7 @@ export function Build({ step, intro, test, onDone }: ActProps<BuildStep>) {
       setFilled(nf);
       if (nf.length === target.length) {
         sfx.correct();
-        void speak(step.word);
+        void speak(step.word, 'en', { tone: 'cheer' });
         onDone({ correct: mistakes === 0, assisted: mistakes > 0 });
       }
     } else {
@@ -49,7 +50,7 @@ export function Build({ step, intro, test, onDone }: ActProps<BuildStep>) {
   return (
     <>
       <div className="prompt">
-        {step.emoji && <div className="big-emoji" style={{ fontSize: 80 }}>{step.emoji}</div>}
+        {step.emoji && <Pic e={step.emoji} size={104} />}
         <Speaker audio={[[step.word, 'en']]} size="sm" />
       </div>
       <div className="slots" aria-label="Your word">
@@ -92,7 +93,7 @@ export function Order({ step, intro, test, showHi, onDone }: ActProps<OrderStep>
     if (words.join(' ') === target.join(' ')) {
       sfx.correct();
       setDone(true);
-      void speak(step.sentence);
+      void speak(step.sentence, 'en', { tone: 'cheer' });
       onDone({ correct: mistakes === 0, assisted: mistakes > 0 });
     } else if (test) {
       setDone(true);
@@ -108,7 +109,7 @@ export function Order({ step, intro, test, showHi, onDone }: ActProps<OrderStep>
         setShake(false);
         setAns(a.slice(0, k));
       }, 500);
-      void speak(showHi ? 'फिर से कोशिश करो' : 'Try again', showHi ? 'hi' : 'en');
+      void speakSeq(showHi ? [['Try again.', 'en'], ['फिर से कोशिश करो।', 'hi']] : [['Try again.', 'en']], { record: false });
     }
   };
 
@@ -131,11 +132,11 @@ export function Order({ step, intro, test, showHi, onDone }: ActProps<OrderStep>
   return (
     <>
       <div className="prompt" style={{ minHeight: 90 }}>
-        {step.scene && <div className="big-emoji" style={{ fontSize: 70 }}>{step.scene}</div>}
-        {step.hi && showHi && <div className="hi" style={{ fontSize: 20, fontWeight: 700 }}>{step.hi}</div>}
+        {step.scene && <Pic e={step.scene} size={92} />}
+        {step.hi && showHi && <div className="hi muted" style={{ fontSize: 18 }}>{step.hi}</div>}
         {!test && <Speaker audio={[[step.sentence, 'en']]} size="sm" />}
       </div>
-      <div className="slots" style={{ animation: shake ? 'shake .4s' : undefined, borderColor: done ? 'var(--good)' : undefined }}>
+      <div className="slots" style={{ animation: shake ? 'shake .4s' : undefined, borderColor: done ? 'var(--mint)' : undefined }}>
         {ans.map((i) => (
           <button key={i} className="tile word" onClick={() => remove(i)}>
             {step.tiles[i]}

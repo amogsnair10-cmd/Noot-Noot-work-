@@ -22,7 +22,7 @@ export const LEVELS: Level[] = [
     stage: 'Letters & first words',
     stageHi: 'अक्षर और पहले शब्द',
     emoji: '🌱',
-    color: '#FF7A1A',
+    color: '#34E5A0',
     goal: 'Know all 26 letters, 60+ everyday words by picture and sound, and read your first words.',
     goalHi: 'सभी 26 अक्षर, चित्र और आवाज़ से 60+ रोज़ के शब्द, और पहले शब्द पढ़ना।',
     units: [
@@ -70,7 +70,7 @@ export const LEVELS: Level[] = [
     stage: 'Read words and understand them',
     stageHi: 'शब्द पढ़ना और समझना',
     emoji: '🌿',
-    color: '#12A39A',
+    color: '#22D3EE',
     goal: 'Read 3-letter words, know 25 sight words, and understand the meaning of what you read.',
     goalHi: '3 अक्षर वाले शब्द पढ़ना, 25 ज़रूरी शब्द पहचानना, और जो पढ़ो उसका मतलब समझना।',
     units: [
@@ -109,7 +109,7 @@ export const LEVELS: Level[] = [
     stage: 'Sentences and simple talk',
     stageHi: 'वाक्य और आसान बातचीत',
     emoji: '🌳',
-    color: '#6C4CF1',
+    color: '#A78BFA',
     goal: 'Read and build simple sentences, ask and answer everyday questions.',
     goalHi: 'आसान वाक्य पढ़ना और बनाना, रोज़ के सवाल पूछना और जवाब देना।',
     units: [
@@ -144,7 +144,7 @@ export const LEVELS: Level[] = [
     stage: 'Stories, writing and conversation',
     stageHi: 'कहानी, लिखना और बातचीत',
     emoji: '🌟',
-    color: '#E8457C',
+    color: '#FFC857',
     goal: 'Read short stories with understanding, write your own sentences, and hold simple conversations.',
     goalHi: 'छोटी कहानियाँ समझकर पढ़ना, अपने वाक्य लिखना, और आसान बातचीत करना।',
     units: [

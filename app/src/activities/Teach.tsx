@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { PASSAGES } from '../content/sentences';
 import { LETTER_MAP, SIGHT, WORDS } from '../content/words';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
+import { Speaker, Tr } from '../components/ui';
 import type { Audio, Step } from '../lib/engine';
-import { speak, speakSeq, stopSpeaking } from '../lib/speech';
-import { Speaker } from '../components/ui';
+import { setReplay, speak, speakSeq, stopSpeaking } from '../lib/speech';
 import type { ActProps } from './Choice';
 
 type T<K extends Step['kind']> = Extract<Step, { kind: K }>;
@@ -19,27 +21,28 @@ function useAuto(stepId: string, audio: Audio, delay = 300) {
   }, [stepId]);
 }
 
+/** Hindi meaning: shown as a translation chip. Tap to hear it when it is hidden. */
 function HindiLine({ hi, show }: { hi: string; show: boolean }) {
   const [open, setOpen] = useState(show);
   useEffect(() => setOpen(show), [show, hi]);
   if (open) return <div className="meaning hi">{hi}</div>;
   return (
     <button
-      className="hi-toggle hi"
+      className="hi-toggle"
       onClick={() => {
         setOpen(true);
         void speak(hi, 'hi');
       }}
     >
-      हिंदी में मतलब 👁️
+      <Icon name="translate" size={18} style={{ verticalAlign: -3 }} /> Hindi meaning
     </button>
   );
 }
 
-function Next({ onDone, label }: { onDone: ActProps<Step>['onDone']; label: string }) {
+function Next({ onDone, label = 'Next', hi = 'आगे' }: { onDone: ActProps<Step>['onDone']; label?: string; hi?: string }) {
   return (
     <button className="btn block" onClick={() => onDone({ correct: true, assisted: false, scored: false })}>
-      {label} ▶
+      <Tr en={label} hi={hi} /> <Icon name="next" size={24} stroke={3} />
     </button>
   );
 }
@@ -48,9 +51,12 @@ export function TeachWord({ step, intro, showHi, onDone }: ActProps<T<'teachWord
   const w = step.word;
   const audio: Audio = showHi ? [[w.en, 'en'], [w.hi, 'hi'], [w.en, 'en']] : [[w.en, 'en'], [w.en, 'en']];
   useAuto(step.id, [...intro, ...audio]);
+  useEffect(() => setReplay([...intro, ...audio]), [step.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="teach" style={{ flex: 1, justifyContent: 'center' }}>
-      <div className="pic">{w.emoji}</div>
+      <div className="stage-pic">
+        <Pic e={w.emoji} size={156} />
+      </div>
       <div className="word">
         <span className="first">{w.en[0]}</span>
         {w.en.slice(1)}
@@ -58,12 +64,12 @@ export function TeachWord({ step, intro, showHi, onDone }: ActProps<T<'teachWord
       <HindiLine hi={w.hi} show={showHi} />
       <div className="row">
         <Speaker audio={audio} />
-        <button className="icon-btn" style={{ width: 60, height: 60 }} onClick={() => void speak(w.en, 'en', { rate: 0.5 })} aria-label="Slow">
-          🐢
+        <button className="icon-btn" style={{ width: 62, height: 62, borderRadius: 22 }} onClick={() => void speak(w.en, 'en', { rate: 0.5 })} aria-label="Say it slowly">
+          <Icon name="turtle" size={32} />
         </button>
       </div>
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -72,10 +78,9 @@ export function TeachLetter({ step, intro, showHi, onDone }: ActProps<T<'teachLe
   const L = LETTER_MAP[step.ch];
   const w = WORDS[L.word];
   const U = step.ch.toUpperCase();
-  const audio: Audio = showHi
-    ? [[U, 'en'], [`${U} for ${w.en}`, 'en'], [`${U} से ${w.en}, ${w.hi}`, 'hi'], [`${w.en}`, 'en']]
-    : [[U, 'en'], [`${U} for ${w.en}`, 'en']];
+  const audio: Audio = showHi ? [[U, 'en'], [`${U} for ${w.en}`, 'en'], [w.hi, 'hi'], [w.en, 'en']] : [[U, 'en'], [`${U} for ${w.en}`, 'en']];
   useAuto(step.id, [...intro, ...audio]);
+  useEffect(() => setReplay([...intro, ...audio]), [step.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const word = w.en;
   const idx = word.indexOf(step.ch);
   return (
@@ -84,20 +89,20 @@ export function TeachLetter({ step, intro, showHi, onDone }: ActProps<T<'teachLe
         <span className="U">{U}</span>
         <span className="u">{step.ch}</span>
       </div>
-      <div className="card row" style={{ gap: 16, padding: '10px 20px' }}>
-        <span style={{ fontSize: 64 }}>{w.emoji}</span>
+      <div className="card row" style={{ gap: 16, padding: '10px 22px 10px 14px' }}>
+        <Pic e={w.emoji} size={84} />
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 38, fontWeight: 800, lineHeight: 1 }}>
+          <div className="read" style={{ fontSize: 40, fontWeight: 700, lineHeight: 1 }}>
             {word.slice(0, idx)}
-            <span style={{ color: 'var(--primary)' }}>{step.ch}</span>
+            <span style={{ color: 'var(--gold)' }}>{step.ch}</span>
             {word.slice(idx + 1)}
           </div>
-          {showHi && <div className="hi muted" style={{ fontSize: 20 }}>{w.hi}</div>}
+          {showHi && <div className="hi muted" style={{ fontSize: 19 }}>{w.hi}</div>}
         </div>
       </div>
       <Speaker audio={audio} />
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -115,7 +120,7 @@ export function TeachBlend({ step, intro, showHi, onDone }: ActProps<T<'teachBle
     for (let i = 0; i < letters.length; i++) {
       if (me !== run.current) return;
       setLit(i);
-      await speak(letters[i].toUpperCase(), 'en', { rate: 0.8 });
+      await speak(letters[i].toUpperCase(), 'en', { tone: 'word' });
       await new Promise((r) => setTimeout(r, 150));
     }
     if (me !== run.current) return;
@@ -123,13 +128,14 @@ export function TeachBlend({ step, intro, showHi, onDone }: ActProps<T<'teachBle
     setJoined(true);
     await speak(w.en, 'en', { rate: 0.45 });
     await new Promise((r) => setTimeout(r, 200));
-    await speak(w.en, 'en');
+    await speak(w.en, 'en', { tone: 'cheer' });
     if (showHi && me === run.current) await speak(w.hi, 'hi');
   };
 
   useEffect(() => {
+    setReplay([...intro, [letters.join(' ').toUpperCase(), 'en'], [w.en, 'en']]);
     const t = setTimeout(async () => {
-      await speakSeq(intro);
+      await speakSeq(intro, { record: false });
       void play();
     }, 300);
     return () => {
@@ -149,17 +155,19 @@ export function TeachBlend({ step, intro, showHi, onDone }: ActProps<T<'teachBle
           </span>
         ))}
       </div>
-      <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--muted)' }}>↓</div>
-      <div className="pic" style={{ opacity: joined ? 1 : 0.15, transition: 'opacity .4s', width: 170, height: 170, fontSize: 96 }}>
-        {w.emoji}
+      <div style={{ opacity: 0.6 }}>
+        <Icon name="next" size={30} style={{ transform: 'rotate(90deg)' }} />
       </div>
-      <div className="word" style={{ fontSize: 46 }}>{w.en}</div>
+      <div className="stage-pic" style={{ width: 190, height: 190, opacity: joined ? 1 : 0.2, transition: 'opacity .4s' }}>
+        <Pic e={w.emoji} size={124} />
+      </div>
+      <div className="word" style={{ fontSize: 48 }}>{w.en}</div>
       {joined && <HindiLine hi={w.hi} show={showHi} />}
-      <button className="speaker" onClick={() => void play()} aria-label="Listen">
-        🔊
+      <button className="speaker" onClick={() => void play()} aria-label="Listen again">
+        <Icon name="speaker" size={38} stroke={2.6} />
       </button>
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -168,15 +176,18 @@ export function TeachSight({ step, intro, showHi, onDone }: ActProps<T<'teachSig
   const s = SIGHT[step.sight];
   const audio: Audio = [[step.sight, 'en'], ...(showHi ? ([[s.hi, 'hi']] as Audio) : []), [s.example, 'en']];
   useAuto(step.id, [...intro, ...audio]);
+  useEffect(() => setReplay([...intro, ...audio]), [step.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const parts = s.example.split(new RegExp(`\\b(${step.sight})\\b`));
   return (
     <div className="teach" style={{ flex: 1, justifyContent: 'center' }}>
-      <div className="pic" style={{ fontSize: 76, fontWeight: 800, color: 'var(--violet)' }}>{step.sight}</div>
+      <div className="stage-pic" style={{ width: 200, height: 200 }}>
+        <span className="read" style={{ fontSize: 76, fontWeight: 700, background: 'linear-gradient(180deg,#fff,#b79bff)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{step.sight}</span>
+      </div>
       <HindiLine hi={s.hi} show={showHi} />
       <div className="big-sentence">
         {parts.map((p, i) =>
           p === step.sight ? (
-            <span key={i} style={{ background: '#ffe2a8', borderRadius: 8, padding: '0 6px' }}>
+            <span key={i} style={{ background: 'rgba(255,200,87,.35)', borderRadius: 8, padding: '0 6px', boxShadow: '0 0 18px rgba(255,200,87,.4)' }}>
               {p}
             </span>
           ) : (
@@ -187,7 +198,7 @@ export function TeachSight({ step, intro, showHi, onDone }: ActProps<T<'teachSig
       {showHi && <div className="hi muted">{s.exampleHi}</div>}
       <Speaker audio={audio} />
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -199,8 +210,8 @@ function ReadingLine({ text, auto, intro, size = 30 }: { text: string; auto: boo
   const run = useRef(0);
   const play = async () => {
     const me = ++run.current;
-    const ms = 360;
-    const p = speak(text, 'en', { rate: 0.8 });
+    const ms = 340;
+    const p = speak(text, 'en', { tone: 'story' });
     for (let i = 0; i < words.length; i++) {
       if (me !== run.current) return;
       setLit(i);
@@ -210,9 +221,10 @@ function ReadingLine({ text, auto, intro, size = 30 }: { text: string; auto: boo
     if (me === run.current) setLit(-1);
   };
   useEffect(() => {
+    setReplay([...(intro ?? []), [text, 'en', 'story']]);
     if (!auto) return;
     const t = setTimeout(async () => {
-      if (intro?.length) await speakSeq(intro);
+      if (intro?.length) await speakSeq(intro, { record: false });
       void play();
     }, 300);
     return () => {
@@ -225,13 +237,13 @@ function ReadingLine({ text, auto, intro, size = 30 }: { text: string; auto: boo
     <div className="col" style={{ alignItems: 'center' }}>
       <div className="sentence-words" style={{ fontSize: size }}>
         {words.map((w, i) => (
-          <button key={i} className={lit === i ? 'lit' : ''} onClick={() => void speak(w.replace(/[.?!,]/g, ''))}>
+          <button key={i} className={lit === i ? 'lit' : ''} onClick={() => void speak(w.replace(/[.?!,]/g, ''), 'en', { tone: 'word' })}>
             {w}
           </button>
         ))}
       </div>
-      <button className="speaker sm" onClick={() => void play()} aria-label="Listen">
-        🔊
+      <button className="speaker sm" onClick={() => void play()} aria-label="Listen again">
+        <Icon name="speaker" size={26} stroke={2.6} />
       </button>
     </div>
   );
@@ -241,12 +253,14 @@ export function TeachSentence({ step, intro, showHi, onDone }: ActProps<T<'teach
   useEffect(() => () => stopSpeaking(), []);
   return (
     <div className="teach" style={{ flex: 1, justifyContent: 'center' }}>
-      <div className="pic" style={{ fontSize: step.scene.length > 3 ? 84 : 110 }}>{step.scene}</div>
+      <div className="stage-pic" style={{ width: 210, height: 210 }}>
+        <Pic e={step.scene} size={step.scene.length > 3 ? 150 : 140} />
+      </div>
       <ReadingLine key={step.id} text={step.en} auto intro={intro} />
       <HindiLine hi={step.hi} show={showHi} />
-      <div className="small muted hi">{showHi ? 'किसी भी शब्द को दबाकर सुनो' : 'Tap any word to hear it'}</div>
+      <div className="small muted">Tap any word to hear it</div>
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -255,13 +269,14 @@ export function TeachDialogue({ step, intro, showHi, onDone }: ActProps<T<'teach
   const [shown, setShown] = useState(1);
   useEffect(() => {
     setShown(1);
+    setReplay([...intro, [step.q, 'en'], [step.a, 'en']]);
     let alive = true;
     (async () => {
       await new Promise((r) => setTimeout(r, 300));
-      await speakSeq([...intro, [step.q, 'en']]);
+      await speakSeq([...intro, [step.q, 'en']], { record: false });
       if (!alive) return;
       setShown(2);
-      await speak(step.a, 'en');
+      await speak(step.a, 'en', { tone: 'cheer' });
     })();
     return () => {
       alive = false;
@@ -271,28 +286,28 @@ export function TeachDialogue({ step, intro, showHi, onDone }: ActProps<T<'teach
   }, [step.id]);
   return (
     <div className="teach" style={{ flex: 1 }}>
-      <div className="big-emoji">{step.scene}</div>
+      <Pic e={step.scene} size={112} />
       <div className="dialogue">
         <button className="say-line" onClick={() => void speak(step.q)}>
-          <span className="who">🧑</span>
+          <Pic e="🧑" size={50} flat />
           <span className="b">
             <div className="en">{step.q}</div>
-            {showHi && <div className="hi">{step.qhi}</div>}
+            {showHi && <div className="hi-tr hi">{step.qhi}</div>}
           </span>
         </button>
         {shown >= 2 && (
-          <button className="say-line right" onClick={() => void speak(step.a)} style={{ animation: 'fadeUp .3s' }}>
-            <span className="who">🙋</span>
+          <button className="say-line right" onClick={() => void speak(step.a)} style={{ animation: 'rise .3s' }}>
+            <Pic e="🙋" size={50} flat />
             <span className="b">
               <div className="en">{step.a}</div>
-              {showHi && <div className="hi">{step.ahi}</div>}
+              {showHi && <div className="hi-tr hi">{step.ahi}</div>}
             </span>
           </button>
         )}
       </div>
       <Speaker audio={[[step.q, 'en'], [step.a, 'en']]} size="sm" />
       <div className="spacer" />
-      <Next onDone={onDone} label={showHi ? 'आगे' : 'Next'} />
+      <Next onDone={onDone} />
     </div>
   );
 }
@@ -309,7 +324,7 @@ export function ReadAlong({ step, intro, showHi, onDone }: ActProps<T<'readAlong
     for (let i = 0; i < p.lines.length; i++) {
       if (me !== run.current) return;
       setCur(i);
-      await speak(p.lines[i].en, 'en', { rate: 0.8 });
+      await speak(p.lines[i].en, 'en', { tone: 'story' });
       await new Promise((r) => setTimeout(r, 350));
     }
     if (me === run.current) {
@@ -319,8 +334,9 @@ export function ReadAlong({ step, intro, showHi, onDone }: ActProps<T<'readAlong
   };
 
   useEffect(() => {
+    setReplay([[p.title, 'en'], ...p.lines.map((l) => [l.en, 'en', 'story'] as [string, 'en', 'story']) ]);
     const t = setTimeout(async () => {
-      await speakSeq([...intro, [p.title, 'en']]);
+      await speakSeq([...intro, [p.title, 'en']], { record: false });
       void playAll();
     }, 300);
     const t2 = setTimeout(() => setPlayed(true), 6000);
@@ -336,7 +352,7 @@ export function ReadAlong({ step, intro, showHi, onDone }: ActProps<T<'readAlong
   return (
     <div className="col" style={{ flex: 1 }}>
       <div className="row" style={{ justifyContent: 'center' }}>
-        <span style={{ fontSize: 46 }}>{p.emoji}</span>
+        <Pic e={p.emoji} size={70} />
         <div>
           <h2>{p.title}</h2>
           {showHi && <div className="hi muted">{p.titleHi}</div>}
@@ -344,17 +360,19 @@ export function ReadAlong({ step, intro, showHi, onDone }: ActProps<T<'readAlong
       </div>
       <div className="card col" style={{ gap: 6, padding: 10 }}>
         {p.lines.map((ln, i) => (
-          <div key={i} className="row" style={{ alignItems: 'flex-start', padding: '6px 6px', borderRadius: 14, background: cur === i ? '#fff1d0' : undefined, transition: 'background .2s' }}>
-            <span style={{ fontSize: 26, minWidth: 64, textAlign: 'center', flex: 'none', whiteSpace: 'nowrap' }}>{ln.scene}</span>
+          <div key={i} className="row" style={{ alignItems: 'center', padding: '6px', borderRadius: 18, background: cur === i ? 'rgba(255,200,87,.22)' : undefined, boxShadow: cur === i ? '0 0 24px rgba(255,200,87,.3)' : undefined, transition: 'all .25s' }}>
+            <span style={{ width: 72, flex: 'none', display: 'grid', placeItems: 'center' }}>
+              <Pic e={ln.scene} size={56} />
+            </span>
             <div style={{ flex: 1 }}>
-              <button style={{ fontSize: 22, fontWeight: 700, textAlign: 'left', lineHeight: 1.3 }} onClick={() => void speak(ln.en, 'en', { rate: 0.8 })}>
+              <button className="read" style={{ fontSize: 22, fontWeight: 700, textAlign: 'left', lineHeight: 1.3 }} onClick={() => void speak(ln.en, 'en', { tone: 'story' })}>
                 {ln.en}
               </button>
               {hiOpen.includes(i) && <div className="hi muted" style={{ fontSize: 17 }}>{ln.hi}</div>}
             </div>
             {!hiOpen.includes(i) && (
-              <button className="chip hi" style={{ fontSize: 13, flex: 'none' }} onClick={() => setHiOpen([...hiOpen, i])}>
-                हिंदी
+              <button className="chip" style={{ fontSize: 13, flex: 'none' }} onClick={() => setHiOpen([...hiOpen, i])} aria-label="Show Hindi">
+                <Icon name="translate" size={16} />
               </button>
             )}
           </div>
@@ -362,11 +380,11 @@ export function ReadAlong({ step, intro, showHi, onDone }: ActProps<T<'readAlong
       </div>
       <div className="row" style={{ justifyContent: 'center' }}>
         <button className="btn ghost small" onClick={() => void playAll()}>
-          🔊 {showHi ? 'पूरी कहानी सुनो' : 'Listen to the story'}
+          <Icon name="speaker" size={22} /> Listen to the story
         </button>
       </div>
       <div className="spacer" />
-      {played && <Next onDone={onDone} label={showHi ? 'सवाल शुरू करो' : 'Start questions'} />}
+      {played && <Next onDone={onDone} label="Start questions" hi="सवाल शुरू करो" />}
     </div>
   );
 }

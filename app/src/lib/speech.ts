@@ -2,12 +2,13 @@
 // Everything is guarded: phones without voices or mics still work.
 
 type Lang = 'en' | 'hi';
+export type Tone = 'cheer' | 'warm' | 'word' | 'slow' | 'story';
+export type Part = [string, Lang] | [string, Lang, Tone];
 
 let voices: SpeechSynthesisVoice[] = [];
 let rateFactor = 1;
 
-const synth: SpeechSynthesis | null =
-  typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null;
+const synth: SpeechSynthesis | null = typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null;
 
 function loadVoices() {
   try {
@@ -29,25 +30,58 @@ export function setSlowSpeech(slow: boolean) {
   rateFactor = slow ? 0.8 : 1;
 }
 
-function norm(l: string) {
-  return l.replace('_', '-').toLowerCase();
+const norm = (l: string) => l.replace('_', '-').toLowerCase();
+
+/** Rank voices: friendly, natural-sounding voices first. */
+function score(v: SpeechSynthesisVoice, lang: Lang): number {
+  const l = norm(v.lang);
+  const n = v.name.toLowerCase();
+  let s = 0;
+  if (lang === 'hi') {
+    if (!l.startsWith('hi')) return -100;
+    s += 5;
+  } else {
+    if (!l.startsWith('en')) return -100;
+    if (l === 'en-in') s += 5;
+    else if (l === 'en-gb') s += 4;
+    else if (l === 'en-us') s += 4;
+    else if (l === 'en-au') s += 3;
+    else s += 1;
+  }
+  if (/natural|neural|online|wavenet|enhanced|premium/.test(n)) s += 6;
+  if (/google/.test(n)) s += navigator.onLine === false ? -2 : 4;
+  if (/female|samantha|zira|aria|jenny|libby|sonia|heera|neerja|swara|veena|karen|moira|serena|ava|allison/.test(n)) s += 2;
+  if (/male|david|mark|james|ravi|hemant|rishi/.test(n) && !/female/.test(n)) s -= 1;
+  if (!v.localService && navigator.onLine === false) s -= 8;
+  if (v.localService) s += 0.5;
+  return s;
 }
 
+const picked: Partial<Record<Lang, SpeechSynthesisVoice>> = {};
 function pickVoice(lang: Lang): SpeechSynthesisVoice | undefined {
   if (!voices.length) loadVoices();
-  const prefs = lang === 'en' ? ['en-in', 'en-gb', 'en-us', 'en-au'] : ['hi-in'];
-  for (const p of prefs) {
-    const local = voices.find((v) => norm(v.lang) === p && v.localService);
-    if (local) return local;
-    const any = voices.find((v) => norm(v.lang) === p);
-    if (any) return any;
+  const key = lang;
+  const cur = picked[key];
+  if (cur && voices.includes(cur) && !(navigator.onLine === false && !cur.localService)) return cur;
+  const best = [...voices].sort((a, b) => score(b, lang) - score(a, lang))[0];
+  if (best && score(best, lang) > -50) {
+    picked[key] = best;
+    return best;
   }
-  return voices.find((v) => norm(v.lang).startsWith(lang));
+  return undefined;
 }
 
 export function hasVoice(lang: Lang) {
   return !!synth && !!pickVoice(lang);
 }
+
+const TONES: Record<Tone, { rate: number; pitch: number }> = {
+  cheer: { rate: 1.0, pitch: 1.38 },
+  warm: { rate: 0.94, pitch: 1.2 },
+  word: { rate: 0.78, pitch: 1.16 },
+  slow: { rate: 0.5, pitch: 1.12 },
+  story: { rate: 0.88, pitch: 1.14 },
+};
 
 let speakToken = 0;
 
@@ -60,19 +94,26 @@ export function stopSpeaking() {
   }
 }
 
-/** Speak one phrase. Resolves when finished (or after a safety timeout). */
-export function speak(text: string, lang: Lang = 'en', opts: { rate?: number } = {}): Promise<void> {
-  const token = ++speakToken;
+/** Break longer text into phrases so the voice breathes. */
+function phrases(text: string): string[] {
+  const t = text.replace(/\s+/g, ' ').trim();
+  const out = t.match(/[^.!?,;:]+[.!?,;:]*/g) ?? [t];
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
+function once(text: string, lang: Lang, tone: Tone, token: number, jitter: number): Promise<void> {
   return new Promise((resolve) => {
-    if (!synth || !text) return resolve();
+    if (!synth || !text || token !== speakToken) return resolve();
+    const v = pickVoice(lang);
+    if (lang === 'hi' && !v) return resolve(); // never read Hindi with an English voice
     try {
-      synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      const v = pickVoice(lang);
       if (v) u.voice = v;
       u.lang = v?.lang ?? (lang === 'en' ? 'en-IN' : 'hi-IN');
-      u.rate = (opts.rate ?? (lang === 'en' ? 0.85 : 0.95)) * rateFactor;
-      u.pitch = 1.05;
+      const t = TONES[tone];
+      u.rate = Math.max(0.4, Math.min(1.5, t.rate * rateFactor));
+      u.pitch = Math.max(0.6, Math.min(1.9, t.pitch + jitter + (/[!]/.test(text) ? 0.1 : 0) + (/\?$/.test(text) ? 0.08 : 0)));
+      u.volume = 1;
       let done = false;
       const finish = () => {
         if (done) return;
@@ -80,10 +121,9 @@ export function speak(text: string, lang: Lang = 'en', opts: { rate?: number } =
         clearTimeout(timer);
         resolve();
       };
-      const timer = setTimeout(finish, 1500 + text.length * 140);
+      const timer = setTimeout(finish, 1800 + text.length * 170);
       u.onend = finish;
       u.onerror = finish;
-      if (token !== speakToken) return resolve();
       synth.speak(u);
     } catch {
       resolve();
@@ -91,16 +131,49 @@ export function speak(text: string, lang: Lang = 'en', opts: { rate?: number } =
   });
 }
 
-/** Speak a sequence: [[text, lang], ...]. Stops if another speak starts. */
-export async function speakSeq(parts: Array<[string, Lang] | [string, Lang, number]>) {
-  for (const [text, lang, rate] of parts) {
+/** Speak one line. Resolves when finished. */
+export async function speak(text: string, lang: Lang = 'en', opts: { tone?: Tone; rate?: number } = {}): Promise<void> {
+  const token = ++speakToken;
+  try {
+    synth?.cancel();
+  } catch {
+    /* ignore */
+  }
+  let tone: Tone = opts.tone ?? (lang === 'hi' ? 'warm' : 'warm');
+  if (opts.rate && opts.rate <= 0.55) tone = 'slow';
+  else if (opts.rate && opts.rate <= 0.82 && !opts.tone) tone = 'word';
+  const ps = text.length > 28 ? phrases(text) : [text];
+  for (let i = 0; i < ps.length; i++) {
+    if (token !== speakToken) return;
+    const jit = (Math.random() - 0.5) * 0.12;
+    await once(ps[i], lang, tone, token, jit);
+    if (i < ps.length - 1) await new Promise((r) => setTimeout(r, 90));
+  }
+}
+
+// ---- Replay memory: whatever was last spoken as an instruction can be replayed on any page.
+let lastParts: Part[] = [];
+export function getLastParts() {
+  return lastParts;
+}
+export function setReplay(parts: Part[]) {
+  lastParts = parts;
+}
+
+/** Speak a sequence of parts. Interrupted if anything else starts speaking. */
+export async function speakSeq(parts: Part[], opts: { record?: boolean } = {}) {
+  if (opts.record !== false && parts.length) lastParts = parts;
+  for (const [text, lang, tone] of parts) {
     const before = speakToken;
-    await speak(text, lang, rate ? { rate } : {});
-    // speak() bumps the token once; any further bump means something else interrupted
-    if (speakToken !== before + 1) return;
-    await new Promise((r) => setTimeout(r, 180));
+    await speak(text, lang, { tone });
+    if (speakToken !== before + 1) return; // something else took over
+    await new Promise((r) => setTimeout(r, 170));
     if (speakToken !== before + 1) return;
   }
+}
+
+export function replayLast() {
+  if (lastParts.length) void speakSeq(lastParts, { record: false });
 }
 
 // ---------- Speech recognition ----------

@@ -2,9 +2,17 @@
 
 A self-paced English learning app for learners who cannot yet read or speak English, with Hindi support. It works for children and adults, on phones, and offline after the first visit.
 
-The app needs no reading ability to use: every instruction is spoken and shown with pictures. A friendly guide, **Mitra** 🦉, talks the learner through each step.
+The app needs no reading ability to use: every instruction is spoken and shown with pictures. A friendly seed called **Pip** guides the learner. Pip grows as they level up: a sprout, then more leaves, a leafy branch, and finally a flower.
 
 ---
+
+## Look and feel
+
+- A dark midnight theme with slow aurora light, and frosted-glass panels, buttons and navigation.
+- **Doodle pictures:** every picture is redrawn on the fly as a hand-inked sticker (flat colours, ink lines, a slight wobble, a cream die-cut edge), so words, scenes and avatars look like one drawn set.
+- An animated welcome hero: floating, waving Pip, orbiting doodles, falling-in title letters and a glowing start button.
+- **Replay audio everywhere:** a speaker button sits in the top bar of every lesson step and floats on every other screen. It repeats what that page just said.
+- Livelier voice: it picks the most natural voice the phone has, speaks in phrases with rising and falling pitch, and uses a brighter tone for praise. Sound effects are bell-like chimes with a little reverb.
 
 ## Who it is for: four learner levels
 
@@ -38,7 +46,7 @@ Activity types: listen-and-pick, read-and-pick, picture-to-word, word meaning, l
 - **Lesson pass:** 70%+ first-try accuracy in the Check unlocks the next lesson. Clicking through can't unlock anything.
 - **Failed twice:** the lesson switches to **easy mode** (2 choices instead of 4, Hindi always on), and the teacher dashboard flags it as stuck.
 - **Spaced repetition:** each word, letter and sentence moves through 6 review boxes (1, 2, 4, 7, 14, 30 days). Due items appear in the warm-up and in the Practice tab.
-- **Hindi fades out:** levels 1–2 speak instructions in Hindi and show meanings. Levels 3–4 speak English and hide Hindi behind a tap.
+- **Hindi is only a translation.** Everything is English first, with a small Hindi line underneath. Instructions are spoken in English, then in Hindi. *More → Hindi translation* is Auto (levels 1–2), Always or Off.
 - **Skill tracking:** six skills are tracked separately (listening, speaking, reading, writing, words, understanding), based on the last 20 independent answers in each.
 
 ## Measuring growth
@@ -81,7 +89,7 @@ npm run dev      # http://localhost:5173
 npm run build    # production build in dist/ (PWA, works offline)
 ```
 
-Tech: React + TypeScript + Vite, PWA (vite-plugin-pwa), Baloo 2 font bundled (Latin + Devanagari), no backend, everything in `localStorage`.
+Tech: React + TypeScript + Vite, PWA (vite-plugin-pwa), Baloo 2 (Latin + Devanagari) and Andika (a reading font with single-storey letters) bundled, no backend, everything in `localStorage`.
 
 - Content: `src/content/` (words, letters, sight words, sentences, dialogues, stories, curriculum). New lessons are data only. The engine generates the activities.
 - Engine: `src/lib/engine.ts` (lesson generator, adaptive rules, spaced repetition, scoring), `src/lib/placement.ts` (tests).

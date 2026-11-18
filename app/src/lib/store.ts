@@ -53,6 +53,7 @@ export interface Profile {
 }
 
 export interface Settings {
+  hindi: 'auto' | 'always' | 'off';
   dailyLimitMin: number;
   goalMin: number;
   slowSpeech: boolean;
@@ -73,7 +74,7 @@ const DEFAULT: AppState = {
   v: 1,
   profiles: [],
   activeId: null,
-  settings: { dailyLimitMin: 60, goalMin: 25, slowSpeech: false, sound: true, teacherPin: '1234' },
+  settings: { hindi: 'auto', dailyLimitMin: 60, goalMin: 25, slowSpeech: false, sound: true, teacherPin: '1234' },
 };
 
 function load(): AppState {
@@ -126,6 +127,11 @@ export function updateProfile(id: string, fn: (p: Profile) => Profile) {
 
 export function activeProfile(s: AppState = state): Profile | null {
   return s.profiles.find((p) => p.id === s.activeId) ?? null;
+}
+
+/** Hindi is only ever a translation. Auto shows it for levels 1-2. */
+export function hindiShown(s: Settings, level: number) {
+  return s.hindi === 'always' || (s.hindi === 'auto' && level <= 2);
 }
 
 export function today(d = new Date()) {

@@ -3,12 +3,12 @@ export type Skill = 'listening' | 'speaking' | 'reading' | 'writing' | 'vocabula
 export const SKILLS: Skill[] = ['listening', 'speaking', 'reading', 'writing', 'vocabulary', 'comprehension'];
 
 export const SKILL_INFO: Record<Skill, { en: string; hi: string; icon: string; color: string }> = {
-  listening: { en: 'Listening', hi: 'सुनना', icon: '👂', color: '#12A39A' },
-  speaking: { en: 'Speaking', hi: 'बोलना', icon: '🗣️', color: '#E8457C' },
-  reading: { en: 'Reading', hi: 'पढ़ना', icon: '📖', color: '#6C4CF1' },
-  writing: { en: 'Writing', hi: 'लिखना', icon: '✍️', color: '#FF7A1A' },
-  vocabulary: { en: 'Words', hi: 'शब्द', icon: '🧠', color: '#2F80ED' },
-  comprehension: { en: 'Understanding', hi: 'समझना', icon: '💡', color: '#D9A400' },
+  listening: { en: 'Listening', hi: 'सुनना', icon: '👂', color: '#22D3EE' },
+  speaking: { en: 'Speaking', hi: 'बोलना', icon: '🗣️', color: '#FF6FA8' },
+  reading: { en: 'Reading', hi: 'पढ़ना', icon: '📖', color: '#A78BFA' },
+  writing: { en: 'Writing', hi: 'लिखना', icon: '✍️', color: '#FFA94D' },
+  vocabulary: { en: 'Words', hi: 'शब्द', icon: '🧠', color: '#5BA2FF' },
+  comprehension: { en: 'Understanding', hi: 'समझना', icon: '💡', color: '#FFD84D' },
 };
 
 export interface Word {

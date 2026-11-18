@@ -1,25 +1,29 @@
 import { useEffect, useState } from 'react';
 import { LEVELS } from '../content/curriculum';
 import { wordLabel } from '../content/words';
-import { Confetti, Mascot, Stars, useSayOnce } from '../components/ui';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
+import type { IconName } from '../components/Icon';
+import { Confetti, Mascot, Stars, Tr, useHindi, useSayOnce } from '../components/ui';
 import type { LessonOutcome } from '../lib/engine';
 import { dueItems, weakItems } from '../lib/engine';
 import { sfx } from '../lib/sfx';
+import { setReplay } from '../lib/speech';
 import type { Profile, Settings } from '../lib/store';
 import { setState, useAppState } from '../lib/store';
 
 export type Tab = 'home' | 'practice' | 'progress' | 'more';
 
 export function Nav({ tab, onTab, due }: { tab: Tab; onTab: (t: Tab) => void; due: number }) {
-  const items: Array<[Tab, string, string]> = [
-    ['home', '🏠', 'सीखो'],
-    ['practice', '🔁', 'दोहराओ'],
-    ['progress', '📊', 'प्रगति'],
-    ['more', '⚙️', 'और'],
+  const items: Array<[Tab, IconName, string]> = [
+    ['home', 'home', 'Learn'],
+    ['practice', 'repeat', 'Practice'],
+    ['progress', 'chart', 'Progress'],
+    ['more', 'gear', 'More'],
   ];
   return (
-    <nav className="nav">
-      {items.map(([k, ico, hi]) => (
+    <nav className="nav" aria-label="Main">
+      {items.map(([k, ic, label]) => (
         <button
           key={k}
           className={tab === k ? 'on' : ''}
@@ -28,8 +32,8 @@ export function Nav({ tab, onTab, due }: { tab: Tab; onTab: (t: Tab) => void; du
             onTab(k);
           }}
         >
-          <span className="ico">{ico}</span>
-          <span className="hi">{hi}</span>
+          <Icon name={ic} size={26} />
+          <span>{label}</span>
           {k === 'practice' && due > 0 && <span className="badge">{due}</span>}
         </button>
       ))}
@@ -37,55 +41,55 @@ export function Nav({ tab, onTab, due }: { tab: Tab; onTab: (t: Tab) => void; du
   );
 }
 
-export function LessonDone({ outcome, title, showHi, onNext, onHome, onRetry }: { outcome: LessonOutcome; title: string; showHi: boolean; onNext: () => void; onHome: () => void; onRetry: () => void }) {
+export function LessonDone({ outcome, title, level, onNext, onHome, onRetry }: { outcome: LessonOutcome; title: string; level: number; onNext: () => void; onHome: () => void; onRetry: () => void }) {
   const { passed, stars, accuracy, levelUp, newWords } = outcome;
+  const hindi = useHindi();
   useEffect(() => {
     if (levelUp) sfx.levelUp();
     else if (passed) sfx.celebrate();
-  }, [passed, levelUp]);
-  useSayOnce(
-    levelUp
-      ? [[showHi ? `वाह! तुम लेवल ${levelUp} पर पहुँच गए!` : `Wow! You reached level ${levelUp}!`, showHi ? 'hi' : 'en']]
-      : passed
-        ? [[showHi ? 'पाठ पूरा हुआ! बहुत बढ़िया!' : 'Lesson complete! Great work!', showHi ? 'hi' : 'en']]
-        : [[showHi ? 'अच्छी कोशिश! थोड़ा और अभ्यास करते हैं। तुम कर सकते हो!' : "Good try! Let's practise a bit more. You can do it!", showHi ? 'hi' : 'en']],
-  );
+    for (let i = 0; i < stars; i++) setTimeout(() => sfx.star(i), 700 + i * 260);
+  }, [passed, levelUp, stars]);
+  const en = levelUp ? `Wow! You reached level ${levelUp}!` : passed ? 'Lesson complete! Great work!' : "Good try! Let's practise a bit more. You can do it!";
+  const hi = levelUp ? `वाह! तुम लेवल ${levelUp} पर पहुँच गए!` : passed ? 'पाठ पूरा हुआ! बहुत बढ़िया!' : 'अच्छी कोशिश! थोड़ा और अभ्यास करते हैं। तुम कर सकते हो!';
+  useSayOnce(hindi ? [[en, 'en', 'cheer'], [hi, 'hi']] : [[en, 'en', 'cheer']]);
   const L = levelUp ? LEVELS[levelUp - 1] : null;
   return (
     <div className="screen center" style={{ gap: 16 }}>
       <Confetti run={passed} />
-      <Mascot size={130} mood={passed ? 'happy' : 'think'} />
+      <Mascot size={140} mood={passed ? 'happy' : 'think'} level={levelUp ?? level} float />
       {L ? (
-        <div className="card col" style={{ width: '100%', alignItems: 'center', borderColor: L.color, borderWidth: 3 }}>
-          <div style={{ fontSize: 64, animation: 'pop .6s' }}>{L.emoji}</div>
+        <div className="glass tint col" style={{ ['--tint' as string]: L.color, width: '100%', alignItems: 'center', padding: 20, gap: 4 }}>
+          <Pic e={L.emoji} size={76} />
           <h1 style={{ color: L.color }}>Level up!</h1>
-          <div className="hi" style={{ fontSize: 22, fontWeight: 800 }}>
-            लेवल {L.n}: {L.nameHi}
+          <div style={{ fontSize: 20, fontWeight: 800 }}>
+            Level {L.n}: {L.name}
           </div>
-          <div className="muted">
-            Level {L.n}: {L.name} — {L.stage}
-          </div>
+          <div className="muted">{L.stage}</div>
         </div>
       ) : (
         <>
-          <h1 className="hi">{passed ? (showHi ? 'पाठ पूरा! 🎉' : 'Lesson complete! 🎉') : showHi ? 'अच्छी कोशिश! 💪' : 'Good try! 💪'}</h1>
+          <h1>
+            <Tr en={passed ? 'Lesson complete!' : 'Good try!'} hi={passed ? 'पाठ पूरा!' : 'अच्छी कोशिश!'} />
+          </h1>
           <div className="muted">{title}</div>
         </>
       )}
-      {passed && <Stars n={stars} size={48} />}
+      {passed && <Stars n={stars} size={52} />}
       <div className="row" style={{ gap: 8, width: '100%' }}>
         <div className="stat">
-          <div className="n" style={{ color: passed ? 'var(--good)' : 'var(--try)' }}>{accuracy}%</div>
-          <div className="t hi">पहली बार सही · first try</div>
+          <div className="n" style={{ color: passed ? 'var(--mint)' : 'var(--amber)' }}>
+            {accuracy}%
+          </div>
+          <div className="t"><Tr en="First try" hi="पहली बार सही" /></div>
         </div>
         <div className="stat">
           <div className="n">{newWords.length}</div>
-          <div className="t hi">नए · new</div>
+          <div className="t"><Tr en="New" hi="नए" /></div>
         </div>
       </div>
       {!passed && (
-        <div className="card hi" style={{ width: '100%', textAlign: 'left' }}>
-          🎯 {showHi ? 'अगला पाठ खोलने के लिए जाँच में 70% सही करना है। हम फिर से अभ्यास करेंगे — इस बार ज़्यादा मदद के साथ।' : 'Get 70% in the check to open the next lesson. Practise again — with more help this time.'}
+        <div className="glass" style={{ width: '100%', textAlign: 'left', padding: 16 }}>
+          <Tr en="Get 70% in the check to open the next lesson. We will practise again with more help." hi="अगला पाठ खोलने के लिए जाँच में 70% सही करना है। हम ज़्यादा मदद के साथ फिर अभ्यास करेंगे।" />
         </div>
       )}
       {newWords.length > 0 && (
@@ -94,7 +98,7 @@ export function LessonDone({ outcome, title, showHi, onNext, onHome, onRetry }: 
             const w = wordLabel(k);
             return w ? (
               <span key={k} className="chip" style={{ animation: 'pop .4s' }}>
-                {w.emoji} {w.en}
+                <Pic e={w.emoji} size={26} flat /> {w.en}
               </span>
             ) : null;
           })}
@@ -103,15 +107,15 @@ export function LessonDone({ outcome, title, showHi, onNext, onHome, onRetry }: 
       <div className="spacer" />
       {passed ? (
         <button className="btn block good" onClick={onNext}>
-          {showHi ? 'अगला पाठ' : 'Next lesson'} ▶
+          <Tr en="Next lesson" hi="अगला पाठ" /> <Icon name="next" size={24} stroke={3} />
         </button>
       ) : (
-        <button className="btn block" onClick={onRetry}>
-          🔁 {showHi ? 'फिर से करो' : 'Try again'}
+        <button className="btn block gold" onClick={onRetry}>
+          <Icon name="repeat" size={24} /> <Tr en="Try again" hi="फिर से करो" />
         </button>
       )}
       <button className="btn ghost block" onClick={onHome}>
-        🏠 {showHi ? 'होम' : 'Home'}
+        <Icon name="home" size={24} /> <Tr en="Home" hi="होम" />
       </button>
     </div>
   );
@@ -120,46 +124,53 @@ export function LessonDone({ outcome, title, showHi, onNext, onHome, onRetry }: 
 export function PracticeTab({ p, onPractice }: { p: Profile; onPractice: (keys: string[]) => void }) {
   const due = dueItems(p, 12);
   const weak = weakItems(p, 12);
-  const showHi = p.level <= 2;
+  const hindi = useHindi();
+  useSayOnce(hindi ? [['Practice makes it stick. Review your words today!', 'en'], ['अभ्यास से याद पक्का होता है। आज अपने शब्द दोहराओ!', 'hi']] : [['Practice makes it stick. Review your words today!', 'en']]);
   return (
     <div className="screen with-nav">
       <div className="row">
-        <Mascot size={64} mood="talk" />
+        <Mascot size={70} mood="talk" level={p.level} float />
         <div>
-          <h2 className="hi">दोहराओ · Practice</h2>
-          <div className="muted small">{showHi ? 'जो सीखा उसे पक्का करो' : 'Make what you learned stick'}</div>
+          <h2>
+            <Tr en="Practice" hi="दोहराओ" />
+          </h2>
+          <div className="muted small">Make what you learned stick</div>
         </div>
       </div>
-      <div className="card col" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <div style={{ fontSize: 56 }}>🧠</div>
-        <h2>{due.length}</h2>
-        <div className="hi" style={{ fontWeight: 700 }}>आज दोहराने वाले शब्द</div>
-        <div className="muted small">Words to review today — practising at the right time helps you remember for longer.</div>
-        <button className="btn teal block" disabled={!due.length} onClick={() => onPractice(due)}>
-          🔁 {showHi ? 'अभी दोहराओ' : 'Review now'}
+      <div className="glass col" style={{ alignItems: 'center', textAlign: 'center', padding: 22 }}>
+        <Icon name="brain" size={54} style={{ color: 'var(--violet-2)' }} />
+        <div style={{ fontSize: 54, fontWeight: 800, lineHeight: 1 }}>{due.length}</div>
+        <div style={{ fontWeight: 800 }}>
+          <Tr en="Words to review today" hi="आज दोहराने वाले शब्द" />
+        </div>
+        <div className="muted small">Reviewing at the right time helps you remember for longer.</div>
+        <button className="btn cyan block" disabled={!due.length} onClick={() => onPractice(due)}>
+          <Icon name="repeat" size={24} /> <Tr en="Review now" hi="अभी दोहराओ" />
         </button>
       </div>
       {weak.length > 0 && (
-        <div className="card col">
-          <div className="hi" style={{ fontWeight: 800 }}>💪 मुश्किल शब्द · Tricky words</div>
+        <div className="glass col">
+          <div style={{ fontWeight: 800 }}>
+            <Tr en="Tricky words" hi="मुश्किल शब्द" />
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {weak.map((k) => {
               const w = wordLabel(k);
               return w ? (
                 <span key={k} className="chip">
-                  {w.emoji} {w.en}
+                  <Pic e={w.emoji} size={26} flat /> {w.en}
                 </span>
               ) : null;
             })}
           </div>
           <button className="btn ghost block" onClick={() => onPractice(weak)}>
-            {showHi ? 'मुश्किल शब्दों का अभ्यास' : 'Practise tricky words'}
+            <Tr en="Practise tricky words" hi="मुश्किल शब्दों का अभ्यास" />
           </button>
         </div>
       )}
       {!due.length && !weak.length && (
-        <div className="card hi" style={{ textAlign: 'center' }}>
-          {showHi ? 'अभी दोहराने के लिए कुछ नहीं। पहले कुछ पाठ करो! 🌱' : 'Nothing to review yet. Do some lessons first! 🌱'}
+        <div className="glass" style={{ textAlign: 'center' }}>
+          <Tr en="Nothing to review yet. Do some lessons first!" hi="अभी दोहराने के लिए कुछ नहीं। पहले कुछ पाठ करो!" />
         </div>
       )}
     </div>
@@ -167,17 +178,19 @@ export function PracticeTab({ p, onPractice }: { p: Profile; onPractice: (keys: 
 }
 
 export function RestScreen({ settings, onHome }: { settings: Settings; onHome: () => void }) {
-  useSayOnce([['आज बहुत अच्छा काम किया! अब आराम करो, कल फिर मिलते हैं।', 'hi']]);
+  const hindi = useHindi();
+  const en = "That's enough for today. Rest your eyes. See you tomorrow!";
+  useSayOnce(hindi ? [[en, 'en'], ['आज के लिए बहुत हुआ। आराम करो, कल फिर मिलते हैं!', 'hi']] : [[en, 'en']]);
   return (
     <div className="screen center" style={{ gap: 18 }}>
-      <div style={{ fontSize: 90 }}>🌙</div>
-      <Mascot size={110} mood="happy" />
-      <h1 className="hi">आज के लिए बहुत हुआ!</h1>
-      <div className="muted">
-        You've learned for {settings.dailyLimitMin} minutes today. Rest your eyes — your brain keeps learning while you rest. See you tomorrow!
-      </div>
-      <button className="btn block teal" onClick={onHome}>
-        🏠 OK
+      <Pic e="🌙" size={100} />
+      <Mascot size={120} mood="happy" float />
+      <h1>
+        <Tr en="Time to rest!" hi="आज के लिए बहुत हुआ!" />
+      </h1>
+      <div className="muted">You have learned for {settings.dailyLimitMin} minutes today. Your brain keeps learning while you rest.</div>
+      <button className="btn block cyan" onClick={onHome}>
+        <Icon name="home" size={24} /> OK
       </button>
     </div>
   );
@@ -188,14 +201,18 @@ export function MoreTab({ p, onSwitch, onTeacher, installPrompt }: { p: Profile;
   const s = app.settings;
   const set = (patch: Partial<Settings>) => setState((st) => ({ ...st, settings: { ...st.settings, ...patch } }));
   const [renaming, setRenaming] = useState(false);
+  useEffect(() => setReplay([['Settings. Here you can change how the app talks and shows Hindi.', 'en']]), []);
   return (
     <div className="screen with-nav">
-      <h2 className="hi">और · More</h2>
-      <div className="card row">
-        <span style={{ fontSize: 46 }}>{p.avatar}</span>
+      <h2>
+        <Tr en="More" hi="और" />
+      </h2>
+      <div className="glass row">
+        <Pic e={p.avatar} size={60} />
         <div style={{ flex: 1 }}>
           {renaming ? (
             <input
+              id="rename"
               className="text-input"
               defaultValue={p.name}
               autoFocus
@@ -207,26 +224,47 @@ export function MoreTab({ p, onSwitch, onTeacher, installPrompt }: { p: Profile;
               }}
             />
           ) : (
-            <button style={{ fontWeight: 800, fontSize: 22 }} onClick={() => setRenaming(true)}>
-              {p.name} ✏️
+            <button style={{ fontWeight: 800, fontSize: 24, display: 'inline-flex', gap: 8, alignItems: 'center' }} onClick={() => setRenaming(true)}>
+              {p.name} <Icon name="pencil" size={20} />
             </button>
           )}
+          <div className="muted small">Level {p.level}: {LEVELS[p.level - 1].name}</div>
         </div>
       </div>
+
+      <div className="glass col">
+        <div className="row">
+          <Icon name="translate" size={26} style={{ color: 'var(--cyan)' }} />
+          <div style={{ fontWeight: 800 }}>Hindi translation</div>
+        </div>
+        <div className="seg" role="group" aria-label="Hindi translation">
+          {(
+            [
+              ['auto', 'Auto'],
+              ['always', 'Always'],
+              ['off', 'Off'],
+            ] as const
+          ).map(([k, label]) => (
+            <button key={k} className={s.hindi === k ? 'on' : ''} onClick={() => set({ hindi: k })}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="muted small">Hindi appears only as a small translation under the English. Auto shows it in Levels 1 and 2.</div>
+        <Toggle on={s.slowSpeech} onChange={(v) => set({ slowSpeech: v })} icon="turtle" label="Slow voice" />
+        <Toggle on={s.sound} onChange={(v) => set({ sound: v })} icon="sound" label="Sound effects" />
+      </div>
+
       <button className="btn ghost block" onClick={onSwitch}>
-        {'👥 दूसरा सीखने वाला · Switch learner'}
+        <Icon name="user" size={24} /> Switch learner
       </button>
       {installPrompt && (
-        <button className="btn teal block" onClick={installPrompt}>
-          {'📲 फ़ोन पर ऐप लगाओ · Install app'}
+        <button className="btn cyan block" onClick={installPrompt}>
+          <Icon name="download" size={24} /> <Tr en="Install app on this phone" hi="फ़ोन पर ऐप लगाओ" />
         </button>
       )}
-      <div className="card col">
-        <Toggle on={s.slowSpeech} onChange={(v) => set({ slowSpeech: v })} label="🐢 धीमी आवाज़ · Slow voice" />
-        <Toggle on={s.sound} onChange={(v) => set({ sound: v })} label="🔔 आवाज़ें · Sound effects" />
-      </div>
       <button className="btn ghost block" onClick={onTeacher}>
-        🧑‍🏫 Teacher area
+        <Icon name="teacher" size={24} /> Teacher area
       </button>
       <div className="muted small" style={{ textAlign: 'center' }}>
         Akshar English · works offline after the first visit · your progress stays on this phone
@@ -235,12 +273,14 @@ export function MoreTab({ p, onSwitch, onTeacher, installPrompt }: { p: Profile;
   );
 }
 
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({ on, onChange, label, icon }: { on: boolean; onChange: (v: boolean) => void; label: string; icon: IconName }) {
   return (
-    <button className="row" style={{ justifyContent: 'space-between', padding: '6px 0' }} onClick={() => onChange(!on)}>
-      <span className="hi" style={{ fontWeight: 700 }}>{label}</span>
-      <span style={{ width: 58, height: 34, borderRadius: 17, background: on ? 'var(--good)' : '#d8d3c8', position: 'relative', transition: 'background .2s', flex: 'none' }}>
-        <span style={{ position: 'absolute', top: 3, left: on ? 27 : 3, width: 28, height: 28, borderRadius: 14, background: '#fff', transition: 'left .2s' }} />
+    <button className="row" style={{ justifyContent: 'space-between', padding: '4px 0' }} onClick={() => onChange(!on)} role="switch" aria-checked={on}>
+      <span className="row" style={{ fontWeight: 700 }}>
+        <Icon name={icon} size={24} style={{ color: 'var(--ink-2)' }} /> {label}
+      </span>
+      <span className={`toggle ${on ? 'on' : ''}`}>
+        <i />
       </span>
     </button>
   );

@@ -71,29 +71,29 @@ async function stepOnce(page, shots) {
       await page.mouse.down();
       await page.mouse.move(box.x + 160, box.y + 200, { steps: 8 });
       await page.mouse.up();
-      const done = page.locator('.btn.teal.block');
+      const done = page.locator('.btn.cyan.block');
       if (await done.isEnabled()) await done.click();
       await page.waitForTimeout(900);
     }
   } else if (k === 'say') {
-    const said = page.getByText(/मैंने बोला|I said it/);
+    const said = page.getByText(/I said it/);
     if (await said.count()) await said.first().click();
     else {
-      const skip0 = page.getByText(/बाद में करूँगा|Skip for now/);
+      const skip0 = page.getByText(/Skip for now/);
       if (await skip0.count()) { await skip0.click(); await page.waitForTimeout(250); return true; }
       const mic = page.locator('.mic:not([disabled])');
       if (await mic.count()) await mic.click();
       await page.waitForTimeout(8000);
-      const skip = page.getByText(/बाद में करूँगा|Skip for now/);
+      const skip = page.getByText(/Skip for now/);
       if (await skip.count()) await skip.click();
       else {
-        const s2 = page.getByText(/मैंने बोला|I said it/);
+        const s2 = page.getByText(/I said it/);
         if (await s2.count()) await s2.first().click();
       }
     }
   } else if (k === 'write') {
     await page.locator('textarea').fill('I have a big family.');
-    await page.getByText(/सेव करो|Save/).click();
+    await page.locator('.btn.good', { hasText: /Save/ }).click();
   }
   await page.waitForTimeout(250);
   return true;
@@ -106,32 +106,34 @@ async function stepOnce(page, shots) {
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push('console: ' + m.text()));
   await page.goto('http://localhost:5173/');
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${OUT}/01a-welcome-early.png` });
+  await page.waitForTimeout(2600);
   await page.screenshot({ path: `${OUT}/01-welcome.png` });
-  await page.getByText('शुरू करो · Start').click();
+  await page.locator('.cta-wrap .btn').click();
   await page.locator('.avatar').first().click();
-  await page.getByText('बड़े').click();
-  await page.locator('input.text-input').fill(MODE === 'weak' ? 'Ramesh' : 'Asha');
+  await page.getByText('Adult').click();
+  await page.locator('#learner-name').fill(MODE === 'weak' ? 'Ramesh' : 'Asha');
   await page.screenshot({ path: `${OUT}/02-profile.png` });
-  await page.getByText('आगे · Next').click();
+  await page.locator('.btn.block', { hasText: 'Next' }).click();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/03-test-intro.png` });
-  await page.getByText('शुरू करो · Start').click();
+  await page.locator('.btn.gold', { hasText: 'Start' }).click();
 
   const shots = new Set();
   // placement
   for (let i = 0; i < 80; i++) {
-    if (await page.getByText(/सीखना शुरू करो|Start learning/).count()) break;
-    const nxt = page.getByText('आगे · Next');
+    if (await page.locator('.btn.gold', { hasText: /Start learning/ }).count()) break;
+    const nxt = page.locator('.screen.center .btn.block', { hasText: /^\s*Next/ });
     if (await nxt.count()) {
-      await nxt.click();
+      await nxt.first().click();
       continue;
     }
     await stepOnce(page, shots);
   }
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/04-placement-result.png`, fullPage: true });
-  await page.getByText(/सीखना शुरू करो|Start learning/).click();
+  await page.locator('.btn.gold', { hasText: /Start learning/ }).click();
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}/05-home.png` });
   await page.screenshot({ path: `${OUT}/05-home-full.png`, fullPage: true });
@@ -139,16 +141,16 @@ async function stepOnce(page, shots) {
   // do lessons
   const LESSONS = +(process.argv[4] || 3);
   for (let L = 0; L < LESSONS; L++) {
-    const start = page.locator('button', { hasText: /Start · शुरू करो|Try again · फिर से/ }).first();
+    const start = page.locator('.hero-card .btn').first();
     if (!(await start.count())) break;
     await start.click();
     for (let i = 0; i < 150; i++) {
-      if (await page.getByText(/अगला पाठ|Next lesson|फिर से करो|Try again/).count()) break;
+      if (await page.locator('.screen.center .btn.block', { hasText: /Next lesson|Try again/ }).count()) break;
       await stepOnce(page, shots);
     }
     await page.waitForTimeout(700);
     await page.screenshot({ path: `${OUT}/06-done-${L}.png` });
-    await page.getByText(/🏠/).last().click();
+    await page.locator('.btn.ghost.block', { hasText: /Home/ }).click();
     await page.waitForTimeout(500);
   }
   await page.screenshot({ path: `${OUT}/07-home-after.png` });
@@ -159,9 +161,9 @@ async function stepOnce(page, shots) {
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/09-practice.png` });
   await page.locator('.nav button').nth(3).click();
-  await page.getByText('Teacher area').click();
+  await page.locator('.btn', { hasText: 'Teacher area' }).click();
   await page.locator('input[type=password]').fill('1234');
-  await page.getByText('Open').click();
+  await page.locator('.btn', { hasText: 'Open' }).click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/10-teacher.png`, fullPage: true });
   const state = await page.evaluate(() => localStorage.getItem('akshar-english-v1'));

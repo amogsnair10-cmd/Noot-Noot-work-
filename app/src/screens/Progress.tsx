@@ -1,20 +1,19 @@
 import { LEVELS, levelLessons } from '../content/curriculum';
 import { SKILLS, SKILL_INFO } from '../content/types';
 import { wordLabel } from '../content/words';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
+import { Mascot, Tr, useSayOnce } from '../components/ui';
 import { lessonsDone, skillScore, streak, testPct, totalStars, wordsKnown } from '../lib/engine';
 import type { Profile } from '../lib/store';
 import { addDays, daysBetween, today } from '../lib/store';
 
-export function finalTestStatus(p: Profile): { available: boolean; reasonHi: string; reason: string } {
-  if (!p.placement) return { available: false, reason: 'Take the starting test first.', reasonHi: 'पहले शुरुआती टेस्ट दो।' };
+export function finalTestStatus(p: Profile): { available: boolean; reason: string } {
+  if (!p.placement) return { available: false, reason: 'Take the starting test first.' };
   const days = daysBetween(p.placement.date, today());
   const done = lessonsDone(p);
-  if (days >= 28 || done >= 12) return { available: true, reason: '', reasonHi: '' };
-  return {
-    available: false,
-    reason: `Opens after 4 weeks or 12 lessons (now: ${days} days, ${done} lessons).`,
-    reasonHi: `4 हफ़्ते या 12 पाठ के बाद खुलेगा (अभी: ${days} दिन, ${done} पाठ)।`,
-  };
+  if (days >= 28 || done >= 12) return { available: true, reason: '' };
+  return { available: false, reason: `Opens after 4 weeks or 12 lessons. Now: ${days} days, ${done} lessons.` };
 }
 
 export function retentionDue(p: Profile) {
@@ -32,6 +31,7 @@ export function Progress({ p, onFinalTest, onRetention, onShare }: { p: Profile;
   const list = levelLessons(p.level);
   const doneInLevel = list.filter((l) => p.lessons[l.id]?.stars).length;
   const ft = finalTestStatus(p);
+  useSayOnce([[`${p.name}, you know ${wordsKnown(p)} words and finished ${lessonsDone(p)} lessons. Keep going!`, 'en', 'cheer']]);
   const known = Object.entries(p.items)
     .filter(([k, s]) => (k.startsWith('w:') || k.startsWith('l:') || k.startsWith('g:')) && s.right > 0)
     .sort((a, b) => b[1].box - a[1].box)
@@ -41,70 +41,65 @@ export function Progress({ p, onFinalTest, onRetention, onShare }: { p: Profile;
   return (
     <div className="screen with-nav">
       <div className="row">
-        <span style={{ fontSize: 46 }}>{p.avatar}</span>
-        <div>
-          <h2 className="hi">मेरी इंग्लिश यात्रा</h2>
-          <div className="muted">My English journey</div>
-        </div>
+        <Pic e={p.avatar} size={56} />
+        <h2>
+          <Tr en="My English journey" hi="मेरी अंग्रेज़ी यात्रा" />
+        </h2>
       </div>
 
-      <div className="card col" style={{ borderColor: lv.color }}>
+      <div className="glass tint col" style={{ ['--tint' as string]: lv.color }}>
         <div className="row">
-          <span style={{ fontSize: 44 }}>{lv.emoji}</span>
+          <Mascot size={84} mood="happy" level={p.level} float />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, color: lv.color, fontSize: 20 }}>
+            <div style={{ fontWeight: 800, color: lv.color, fontSize: 22 }}>
               Level {lv.n}: {lv.name}
             </div>
-            <div className="hi small">{lv.nameHi} · {lv.stageHi}</div>
+            <div className="muted small">{lv.stage}</div>
           </div>
         </div>
-        <div className="bar" style={{ height: 18 }}>
+        <div className="bar" style={{ height: 16, color: lv.color }}>
           <div style={{ width: `${(doneInLevel / list.length) * 100}%`, background: lv.color }} />
         </div>
         <div className="small muted">
-          {doneInLevel}/{list.length} lessons in this level · <span className="hi">इस लेवल के पाठ</span>
+          {doneInLevel} of {list.length} lessons in this level
         </div>
-        {p.placement && p.startLevel < p.level && (
-          <div className="flag green" style={{ alignSelf: 'flex-start' }}>
-            🚀 Moved up from Level {p.startLevel} to Level {p.level}!
-          </div>
-        )}
+        {p.placement && p.startLevel < p.level && <span className="flag green" style={{ alignSelf: 'flex-start' }}>Moved up from Level {p.startLevel} to Level {p.level}</span>}
       </div>
 
       <div className="row" style={{ gap: 8 }}>
         <div className="stat">
           <div className="n">{wordsKnown(p)}</div>
-          <div className="t hi">शब्द · words</div>
+          <div className="t"><Tr en="Words" hi="शब्द" /></div>
         </div>
         <div className="stat">
           <div className="n">{lessonsDone(p)}</div>
-          <div className="t hi">पाठ · lessons</div>
+          <div className="t"><Tr en="Lessons" hi="पाठ" /></div>
         </div>
         <div className="stat">
-          <div className="n">⭐{totalStars(p)}</div>
-          <div className="t hi">सितारे · stars</div>
+          <div className="n" style={{ color: 'var(--gold)' }}>{totalStars(p)}</div>
+          <div className="t"><Tr en="Stars" hi="सितारे" /></div>
         </div>
         <div className="stat">
-          <div className="n">🔥{streak(p)}</div>
-          <div className="t hi">दिन · days</div>
+          <div className="n" style={{ color: '#ff9f43' }}>{streak(p)}</div>
+          <div className="t"><Tr en="Day streak" hi="दिन" /></div>
         </div>
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>
-          <span className="hi">मेरे हुनर</span> · My skills
+          <Tr en="My skills" hi="मेरे हुनर" />
         </h3>
         {SKILLS.map((k) => {
           const now = skillScore(p, k);
           const base = testPct(p.placement, k);
           return (
             <div key={k} className="skill">
-              <span className="ico">{SKILL_INFO[k].icon}</span>
+              <Pic e={SKILL_INFO[k].icon} size={34} flat />
               <div>
                 <div className="small" style={{ fontWeight: 700 }}>
-                  <span className="hi">{SKILL_INFO[k].hi}</span> · {SKILL_INFO[k].en}
+                  <Tr en={SKILL_INFO[k].en} hi={SKILL_INFO[k].hi} line />
                 </div>
-                <div className="bar">
+                <div className="bar" style={{ color: SKILL_INFO[k].color }}>
                   <div style={{ width: `${now ?? 0}%`, background: SKILL_INFO[k].color }} />
                   {base !== null && <span className="base" style={{ left: `${base}%` }} title="Starting test" />}
                 </div>
@@ -113,76 +108,72 @@ export function Progress({ p, onFinalTest, onRetention, onShare }: { p: Profile;
             </div>
           );
         })}
-        <div className="muted small">Bars show your recent answers on the first try. ▏ = starting test. · <span className="hi">▏= शुरुआती टेस्ट</span></div>
+        <div className="muted small">Bars show your recent first-try answers. The white mark is your starting test.</div>
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>
-          🏁 <span className="hi">टेस्ट</span> · Tests
+          <Tr en="Tests" hi="टेस्ट" />
         </h3>
-        <TestRow label="Starting test · शुरुआती टेस्ट" r={p.placement} />
-        <TestRow label="Final test · फाइनल टेस्ट" r={p.endline} />
+        <TestRow label="Starting test" r={p.placement} />
+        <TestRow label="Final test" r={p.endline} />
         {p.retention && (
           <div className="row small">
-            <span>🧠 Memory check · याद की जाँच</span>
+            <span>Memory check</span>
             <span className="spacer" />
             <b>{Math.round((p.retention.right / p.retention.total) * 100)}%</b>
           </div>
         )}
         {!p.endline && (
           <>
-            <button className="btn violet block" disabled={!ft.available} onClick={onFinalTest}>
-              {'🏆 दिखाओ क्या सीखा · Final test'}
+            <button className="btn gold block" disabled={!ft.available} onClick={onFinalTest}>
+              <Icon name="trophy" size={26} /> <Tr en="Final test" hi="फाइनल टेस्ट" />
             </button>
-            {!ft.available && (
-              <div className="muted small">
-                {ft.reason} <span className="hi">{ft.reasonHi}</span>
-              </div>
-            )}
+            {!ft.available && <div className="muted small">{ft.reason}</div>}
           </>
         )}
         {retentionDue(p) && (
-          <button className="btn teal block" onClick={onRetention}>
-            {'🧠 याद की जाँच · Memory check'}
+          <button className="btn cyan block" onClick={onRetention}>
+            <Icon name="brain" size={26} /> <Tr en="Memory check" hi="याद की जाँच" />
           </button>
         )}
       </div>
 
       {known.length > 0 && (
-        <div className="card col">
+        <div className="glass col">
           <h3>
-            <span className="hi">मुझे आते हैं</span> · Words I know ({known.length})
+            <Tr en={`Words I know (${known.length})`} hi="मुझे आते हैं" />
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {known.slice(0, 80).map(({ k, s, w }) => (
-              <span key={k} className="chip" style={{ background: s.box >= 3 ? '#e2f6e9' : s.box >= 1 ? '#fff1d6' : '#f3eee6' }}>
-                {w!.emoji} {w!.en}
+              <span key={k} className="chip" style={{ borderColor: s.box >= 3 ? 'rgba(52,229,160,.7)' : s.box >= 1 ? 'rgba(255,184,77,.6)' : undefined, background: s.box >= 3 ? 'rgba(52,229,160,.16)' : undefined }}>
+                <Pic e={w!.emoji} size={26} flat /> {w!.en}
               </span>
             ))}
           </div>
-          <div className="muted small">🟩 strong · 🟨 learning · <span className="hi">हरा = पक्का, पीला = सीख रहे हैं</span></div>
+          <div className="muted small">Green means strong. Amber means still learning.</div>
         </div>
       )}
 
       {p.writings.length > 0 && (
-        <div className="card col">
+        <div className="glass col">
           <h3>
-            ✍️ <span className="hi">मैंने लिखा</span> · My writing
+            <Tr en="My writing" hi="मैंने लिखा" />
           </h3>
           {p.writings
             .slice(-6)
             .reverse()
             .map((w, i) => (
-              <div key={i} style={{ borderLeft: '4px solid var(--primary)', paddingLeft: 10 }}>
+              <div key={i} style={{ borderLeft: '3px solid var(--gold)', paddingLeft: 12 }}>
                 <div className="muted small">{w.date} · {w.prompt}</div>
-                <div style={{ fontWeight: 700 }}>{w.text}</div>
+                <div className="read" style={{ fontWeight: 700 }}>{w.text}</div>
               </div>
             ))}
         </div>
       )}
 
-      <button className="btn teal block" onClick={onShare}>
-        {'📤 टीचर को रिपोर्ट भेजो · Send report'}
+      <button className="btn cyan block" onClick={onShare}>
+        <Icon name="share" size={24} /> <Tr en="Send report to teacher" hi="टीचर को रिपोर्ट भेजो" />
       </button>
     </div>
   );
@@ -191,14 +182,14 @@ export function Progress({ p, onFinalTest, onRetention, onShare }: { p: Profile;
 function TestRow({ label, r }: { label: string; r?: { date: string; level: number } }) {
   return (
     <div className="row small">
-      <span className="hi">{label}</span>
+      <span>{label}</span>
       <span className="spacer" />
       {r ? (
         <b style={{ color: LEVELS[r.level - 1].color }}>
-          {LEVELS[r.level - 1].emoji} L{r.level} · {r.date}
+          Level {r.level} · {r.date}
         </b>
       ) : (
-        <span className="muted">—</span>
+        <span className="muted">Not yet</span>
       )}
     </div>
   );

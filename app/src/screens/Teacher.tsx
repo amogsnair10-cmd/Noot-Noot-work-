@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
 import { LEVELS } from '../content/curriculum';
 import { SKILLS, SKILL_INFO } from '../content/types';
 import { wordLabel } from '../content/words';
@@ -19,7 +21,7 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
   if (!ok)
     return (
       <div className="screen center" style={{ gap: 16 }}>
-        <div style={{ fontSize: 60 }}>🧑‍🏫</div>
+        <Icon name="teacher" size={64} style={{ color: 'var(--violet-2)' }} />
         <h2>Teacher area</h2>
         <div className="muted">Enter PIN (default 1234 — please change it)</div>
         <input
@@ -32,11 +34,11 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
           onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
           onKeyDown={(e) => e.key === 'Enter' && pin === app.settings.teacherPin && setOk(true)}
         />
-        <button className="btn violet" disabled={pin !== app.settings.teacherPin} onClick={() => setOk(true)}>
+        <button className="btn" disabled={pin !== app.settings.teacherPin} onClick={() => setOk(true)}>
           Open
         </button>
         <button className="btn ghost small" onClick={onExit}>
-          ← Back
+          <Icon name="back" size={20} /> Back
         </button>
       </div>
     );
@@ -59,7 +61,7 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
     <div className="screen">
       <div className="row">
         <button className="icon-btn" onClick={onExit} aria-label="Back">
-          ←
+          <Icon name="back" size={24} stroke={2.8} />
         </button>
         <h2>Teacher dashboard</h2>
       </div>
@@ -68,14 +70,14 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
         {LEVELS.map((L) => (
           <div key={L.n} className="stat">
             <div className="n" style={{ color: L.color }}>{ps.filter((x) => x.level === L.n).length}</div>
-            <div className="t">
-              {L.emoji} L{L.n}
+            <div className="t" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <Pic e={L.emoji} size={22} flat /> L{L.n}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="card" style={{ padding: 8, overflowX: 'auto' }}>
+      <div className="glass" style={{ padding: 10, overflowX: 'auto' }}>
         <table className="t">
           <thead>
             <tr>
@@ -97,8 +99,8 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
             {ps.map((x) => (
               <tr key={x.id} onClick={() => setSel(x.id)} style={{ cursor: 'pointer' }}>
                 <td>
-                  <b>
-                    {x.avatar} {x.name}
+                  <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Pic e={x.avatar} size={28} flat /> {x.name}
                   </b>
                 </td>
                 <td>
@@ -119,11 +121,11 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
         </table>
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>Reports & data</h3>
         <div className="muted small">Each learner uses their own phone, so collect reports by sharing (WhatsApp) or by downloading the CSV. A backup file moves a learner to a new phone.</div>
-        <button className="btn teal block small" onClick={() => download(`akshar-class-${today()}.csv`, csvReport(ps), 'text/csv')}>
-          ⬇️ Download CSV (all learners)
+        <button className="btn cyan block small" onClick={() => download(`akshar-class-${today()}.csv`, csvReport(ps), 'text/csv')}>
+          <Icon name="download" size={22} /> Download CSV (all learners)
         </button>
         <button
           className="btn ghost block small"
@@ -132,14 +134,14 @@ export function Teacher({ onExit, onRunFinal }: { onExit: () => void; onRunFinal
             setMsg(r === 'copied' ? 'Copied to clipboard.' : r === 'failed' ? 'Could not share.' : '');
           }}
         >
-          📤 Share text reports
+          <Icon name="share" size={22} /> Share text reports
         </button>
         <div className="row">
           <button className="btn ghost small" style={{ flex: 1 }} onClick={() => download(`akshar-backup-${today()}.json`, exportBackup(), 'application/json')}>
-            💾 Backup
+            <Icon name="download" size={20} /> Backup
           </button>
           <button className="btn ghost small" style={{ flex: 1 }} onClick={() => fileRef.current?.click()}>
-            📂 Restore
+            <Icon name="upload" size={20} /> Restore
           </button>
         </div>
         <input
@@ -167,7 +169,7 @@ function TeacherSettings() {
   const [newPin, setNewPin] = useState('');
   const set = (patch: Partial<typeof s>) => setState((st) => ({ ...st, settings: { ...st.settings, ...patch } }));
   return (
-    <div className="card col">
+    <div className="glass col">
       <h3>Settings</h3>
       <label className="row">
         <span style={{ flex: 1 }}>Daily goal (minutes)</span>
@@ -188,7 +190,7 @@ function TeacherSettings() {
       <div className="row">
         <input className="text-input" style={{ flex: 1, padding: 10, fontSize: 18 }} inputMode="numeric" placeholder="New PIN" value={newPin} maxLength={8} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} />
         <button
-          className="btn violet small"
+          className="btn small"
           disabled={newPin.length < 4}
           onClick={() => {
             set({ teacherPin: newPin });
@@ -212,9 +214,9 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
     <div className="screen">
       <div className="row">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
-          ←
+          <Icon name="back" size={24} stroke={2.8} />
         </button>
-        <span style={{ fontSize: 40 }}>{p.avatar}</span>
+        <Pic e={p.avatar} size={52} />
         <div>
           <h2>{p.name}</h2>
           <div className="muted small">
@@ -223,7 +225,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
         </div>
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>Skills: start · now · final</h3>
         <table className="t">
           <thead>
@@ -238,7 +240,9 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
             {SKILLS.map((k) => (
               <tr key={k}>
                 <td>
-                  {SKILL_INFO[k].icon} {SKILL_INFO[k].en}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Pic e={SKILL_INFO[k].icon} size={24} flat /> {SKILL_INFO[k].en}
+                  </span>
                 </td>
                 <td>{testPct(p.placement, k) ?? '–'}%</td>
                 <td>{skillScore(p, k) ?? '–'}%</td>
@@ -250,7 +254,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
         <div className="muted small">“Now” = first-try accuracy on the last 20 answers in that skill. Speaking “now” only counts phones with speech recognition, so also use the rubric below.</div>
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>Speaking rubric (your judgement)</h3>
         <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
           {['0 Not yet', '1 Beginning', '2 Developing', '3 Independent', '4 Applying'].map((t, i) => (
@@ -262,7 +266,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
       </div>
 
       {(stuck.length > 0 || weak.length > 0) && (
-        <div className="card col">
+        <div className="glass col">
           <h3>Needs help</h3>
           {stuck.map((l) => (
             <div key={l.id} className="flag red">
@@ -273,7 +277,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {weak.map((w, i) => (
                 <span key={i} className="chip">
-                  {w!.emoji} {w!.en}
+                  <Pic e={w!.emoji} size={22} flat /> {w!.en}
                 </span>
               ))}
             </div>
@@ -281,33 +285,32 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
         </div>
       )}
 
-      <div className="card col">
+      <div className="glass col">
         <h3>Actions</h3>
         <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
           <span>Level:</span>
           {LEVELS.map((L) => (
             <button key={L.n} className={`chip ${p.level === L.n ? 'flag green' : ''}`} onClick={() => updateProfile(p.id, (x) => ({ ...x, level: L.n, startLevel: Math.min(x.startLevel, L.n) }))}>
-              {L.emoji} {L.n}
+              <Pic e={L.emoji} size={20} flat /> {L.n}
             </button>
           ))}
         </div>
         <button className="btn ghost block small" onClick={() => updateProfile(p.id, (x) => ({ ...x, extraTimeDate: today() }))}>
-          ⏱️ Allow extra time today {p.extraTimeDate === today() ? '✓' : ''}
+          <Icon name="clock" size={22} /> Allow extra time today {p.extraTimeDate === today() ? '(on)' : ''}
         </button>
-        <button className="btn violet block small" onClick={onRunFinal}>
-          🏆 Run final test now
+        <button className="btn gold block small" onClick={onRunFinal}>
+          <Icon name="trophy" size={22} /> Run final test now
         </button>
         <button className="btn ghost block small" onClick={() => void shareText(`Report ${p.name}`, textReport(p))}>
-          📤 Share this report
+          <Icon name="share" size={22} /> Share this report
         </button>
         {!confirmDel ? (
-          <button className="btn ghost block small" style={{ color: '#b0204f' }} onClick={() => setConfirmDel(true)}>
-            🗑️ Delete learner
+          <button className="btn ghost block small" style={{ color: '#ff9aa5' }} onClick={() => setConfirmDel(true)}>
+            <Icon name="trash" size={22} /> Delete learner
           </button>
         ) : (
           <button
-            className="btn block small"
-            style={{ background: '#b0204f', boxShadow: '0 5px 0 #7d1438' }}
+            className="btn danger block small"
             onClick={() => {
               setState((s) => ({ ...s, profiles: s.profiles.filter((x) => x.id !== p.id), activeId: s.activeId === p.id ? null : s.activeId }));
               onBack();
@@ -318,7 +321,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
         )}
       </div>
 
-      <div className="card col">
+      <div className="glass col">
         <h3>Last 7 days</h3>
         <div className="row" style={{ alignItems: 'flex-end', height: 90, gap: 6 }}>
           {Array.from({ length: 7 }, (_, i) => {
@@ -326,7 +329,7 @@ function LearnerDetail({ p, onBack, onRunFinal }: { p: Profile; onBack: () => vo
             const m = Math.round((p.daily[d]?.sec ?? 0) / 60);
             return (
               <div key={d} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ height: Math.min(60, m), background: 'var(--teal)', borderRadius: 6, minHeight: 2 }} />
+                <div style={{ height: Math.min(60, m), background: 'linear-gradient(180deg,var(--cyan),var(--violet))', borderRadius: 6, minHeight: 2 }} />
                 <div className="small muted">{m}</div>
               </div>
             );

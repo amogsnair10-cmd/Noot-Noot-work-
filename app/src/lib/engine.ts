@@ -3,14 +3,14 @@ import { DIALOGUES, PASSAGES, SENTENCES } from '../content/sentences';
 import type { Lesson, Question, Skill, Word } from '../content/types';
 import { SKILLS } from '../content/types';
 import { LETTERS, LETTER_MAP, SIGHT, WORDS } from '../content/words';
+import type { Part } from './speech';
 import type { ItemStat, Profile, TestResult } from './store';
 import { addDays, today } from './store';
 
 // ---------------------------------------------------------------- Steps
 
 export type Phase = 'warmup' | 'learn' | 'practice' | 'apply' | 'check';
-type Lang = 'en' | 'hi';
-export type Audio = Array<[string, Lang]>;
+export type Audio = Part[];
 
 export interface Instruction {
   key: string;

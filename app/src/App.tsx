@@ -3,6 +3,7 @@ import { LESSON_MAP } from './content/curriculum';
 import type { Lesson } from './content/types';
 import type { LessonOutcome, Step } from './lib/engine';
 import { applyResults, dueItems, generateLesson, isEasyMode, nextLesson, reviewStep, shuffle } from './lib/engine';
+import { ReplayButton, Sky } from './components/ui';
 import { shareText, textReport } from './lib/report';
 import { setMuted } from './lib/sfx';
 import { setSlowSpeech } from './lib/speech';
@@ -110,10 +111,10 @@ export default function App() {
   };
 
   // ------------------------------------------------------------ views without a learner
-  if (view.v === 'welcome') return <Shell><Welcome onStart={() => setView({ v: 'new' })} /></Shell>;
+  if (view.v === 'welcome') return <Shell replay><Welcome onStart={() => setView({ v: 'new' })} /></Shell>;
   if (view.v === 'new')
     return (
-      <Shell>
+      <Shell replay>
         <NewProfile onBack={app.profiles.length ? () => setView({ v: 'pick' }) : undefined} onCreated={() => setView({ v: 'test', form: 'A' })} />
       </Shell>
     );
@@ -131,7 +132,7 @@ export default function App() {
     );
   if (view.v === 'pick' || !p)
     return (
-      <Shell>
+      <Shell replay>
         <ProfilePicker
           onPick={(id) => {
             setState((st) => ({ ...st, activeId: id }));
@@ -199,11 +200,11 @@ export default function App() {
   if (view.v === 'done') {
     const lesson = view.session.lessonId ? LESSON_MAP[view.session.lessonId] : null;
     return (
-      <Shell>
+      <Shell replay>
         <LessonDone
           outcome={view.outcome}
           title={view.session.title}
-          showHi={p.level <= 2}
+          level={p.level}
           onHome={() => setView({ v: 'main', tab: 'home' })}
           onRetry={() => (lesson ? startLesson(p, lesson) : setView({ v: 'main', tab: 'practice' }))}
           onNext={() => {
@@ -216,7 +217,7 @@ export default function App() {
     );
   }
 
-  if (view.v === 'rest') return <Shell><RestScreen settings={app.settings} onHome={() => setView({ v: 'main', tab: 'home' })} /></Shell>;
+  if (view.v === 'rest') return <Shell replay><RestScreen settings={app.settings} onHome={() => setView({ v: 'main', tab: 'home' })} /></Shell>;
 
   // main tabs
   const resume = loadResume(p.id);
@@ -250,16 +251,21 @@ export default function App() {
         />
       )}
       {tab === 'more' && <MoreTab p={p} onSwitch={() => setView({ v: 'pick' })} onTeacher={() => setView({ v: 'teacher' })} installPrompt={install} />}
+      <ReplayButton />
       <Nav tab={tab} onTab={(t) => setView({ v: 'main', tab: t })} due={dueItems(p, 99).length} />
-      {toast && (
-        <div className="chip" style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: '#fff', zIndex: 40, padding: '10px 18px' }}>
-          {toast}
-        </div>
-      )}
+      {toast && <div className="toast">{toast}</div>}
     </Shell>
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="app">{children}</div>;
+function Shell({ children, replay = false }: { children: React.ReactNode; replay?: boolean }) {
+  return (
+    <>
+      <Sky />
+      <div className="app">
+        {children}
+        {replay && <ReplayButton corner />}
+      </div>
+    </>
+  );
 }

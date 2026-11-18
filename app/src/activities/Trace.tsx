@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Step } from '../lib/engine';
 import { sfx } from '../lib/sfx';
 import { speak, speakSeq } from '../lib/speech';
+import { Icon } from '../components/Icon';
+import { Tr } from '../components/ui';
 import type { ActProps } from './Choice';
 
 type TraceStep = Extract<Step, { kind: 'trace' }>;
@@ -42,7 +44,7 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
       g.scale(dpr, dpr);
       g.clearRect(0, 0, SIZE, SIZE);
       // baseline guides
-      g.strokeStyle = '#efe5d4';
+      g.strokeStyle = 'rgba(255,255,255,0.16)';
       g.lineWidth = 2;
       g.setLineDash([8, 8]);
       [70, 150, 230].forEach((y) => {
@@ -55,9 +57,9 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
       g.font = FONT(230);
       g.textAlign = 'center';
       g.textBaseline = 'alphabetic';
-      g.fillStyle = '#ece4ff';
+      g.fillStyle = 'rgba(183,155,255,0.22)';
       g.fillText(ch, SIZE / 2, 232);
-      g.strokeStyle = '#b9a8ff';
+      g.strokeStyle = 'rgba(214,198,255,0.8)';
       g.lineWidth = 3;
       g.setLineDash([10, 9]);
       g.strokeText(ch, SIZE / 2, 232);
@@ -88,7 +90,7 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
   const line = (a: { x: number; y: number }, b: { x: number; y: number }) => {
     const c = ink.current!.getContext('2d')!;
     c.setTransform(2, 0, 0, 2, 0, 0);
-    c.strokeStyle = '#FF7A1A';
+    c.strokeStyle = '#FFC857';
     c.lineCap = 'round';
     c.lineJoin = 'round';
     c.lineWidth = 24;
@@ -178,7 +180,7 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
       if (!upper) {
         // Then the capital letter
         setMsg('');
-        void speak(showHi ? 'बहुत अच्छा! अब बड़ा अक्षर' : 'Great! Now the capital letter', showHi ? 'hi' : 'en');
+        void speak('Great! Now the capital letter.', 'en', { tone: 'cheer' });
         setUpper(true);
         return;
       }
@@ -193,8 +195,8 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
         onDone({ correct: false, assisted: false });
         return;
       }
-      setMsg(showHi ? 'लाइन के ऊपर चलो। फिर से!' : 'Stay on the line. Try again!');
-      void speak(showHi ? 'लाइन के ऊपर चलो, फिर से कोशिश करो' : 'Stay on the line and try again', showHi ? 'hi' : 'en');
+      setMsg(showHi ? 'Stay on the line. Try again!  ·  लाइन के ऊपर चलो।' : 'Stay on the line. Try again!');
+      void speak('Stay on the line, and try again.');
       setTimeout(clearInk, 700);
     }
   };
@@ -205,13 +207,13 @@ export function Trace({ step, intro, showHi, onDone }: ActProps<TraceStep>) {
         <canvas ref={guide} />
         <canvas ref={ink} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} style={{ touchAction: 'none' }} />
       </div>
-      {msg && <div className="hi" style={{ textAlign: 'center', fontWeight: 700, color: '#a35f00' }}>{msg}</div>}
+      {msg && <div style={{ textAlign: 'center', fontWeight: 700, color: 'var(--amber)' }}>{msg}</div>}
       <div className="row">
-        <button className="btn ghost" onClick={clearInk} disabled={done} aria-label="Clear">
-          🧽
+        <button className="btn ghost" onClick={clearInk} disabled={done} aria-label="Clear" style={{ minWidth: 70 }}>
+          <Icon name="eraser" size={28} />
         </button>
-        <button className="btn teal block" onClick={check} disabled={!hasInk || done}>
-          ✓ {showHi ? 'हो गया' : 'Done'}
+        <button className="btn cyan block" onClick={check} disabled={!hasInk || done}>
+          <Icon name="check" size={26} stroke={3} /> <Tr en="Done" hi="हो गया" />
         </button>
       </div>
     </>

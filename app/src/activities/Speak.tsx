@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Pic } from '../components/Doodle';
+import { Icon } from '../components/Icon';
+import { Speaker, Tr } from '../components/ui';
 import type { Step } from '../lib/engine';
 import { sfx } from '../lib/sfx';
 import { canRecognize, canRecord, recognizeOnce, recordClip, speak, speakSeq, speechMatch } from '../lib/speech';
-import { Speaker } from '../components/ui';
 import type { ActProps } from './Choice';
 
 type SayStep = Extract<Step, { kind: 'say' }>;
@@ -28,7 +30,7 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
     setTries(0);
     setHeard('');
     setClip(null);
-    const t = setTimeout(() => void speakSeq([...intro, [step.text, 'en']]), 250);
+    const t = setTimeout(() => void speakSeq([...intro, [step.text, 'en', 'word']]), 250);
     return () => {
       clearTimeout(t);
       cancel.current();
@@ -48,7 +50,6 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
       cancel.current = r.cancel;
       const alts = await r.promise;
       if (test) {
-        // One try only in tests; unscored if nothing was heard
         if (alts) setHeard(alts[0]);
         finish(!!alts && speechMatch(step.text, alts) >= 0.6, !!alts);
         return;
@@ -57,7 +58,7 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
         if (tries >= 1) setNoMic(true);
         setState('ready');
         setHeard('');
-        void speak(showHi ? 'मुझे सुनाई नहीं दिया। माइक दबाकर फिर से बोलो' : "I didn't hear you. Tap and try again", showHi ? 'hi' : 'en');
+        void speak("I didn't hear you. Tap the mic and try again.");
         const t = tries + 1;
         setTries(t);
         if (t >= 3) finish(false, false);
@@ -68,17 +69,17 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
       if (score >= 0.6) {
         sfx.correct();
         setState('heard');
-        void speak(showHi ? 'बहुत अच्छा बोला!' : 'Well said!', showHi ? 'hi' : 'en');
+        void speak('Well said!', 'en', { tone: 'cheer' });
         finish(true, true, tries > 0);
       } else {
         const t = tries + 1;
         setTries(t);
         setState('heard');
         if (t >= 2) {
-          void speak(showHi ? 'अच्छी कोशिश! सुनो और साथ बोलो' : 'Good try! Listen and say it with me', showHi ? 'hi' : 'en').then(() => speak(step.text));
+          void speakSeq([['Good try! Listen, and say it with me.', 'en'], [step.text, 'en', 'word']], { record: false });
           finish(false, true, false);
         } else {
-          void speakSeq([[showHi ? 'लगभग सही! एक बार और सुनो' : 'Almost! Listen once more', showHi ? 'hi' : 'en'], [step.text, 'en']]);
+          void speakSeq([['Almost! Listen once more.', 'en'], [step.text, 'en', 'word']], { record: false });
         }
       }
       return;
@@ -95,66 +96,62 @@ export function Say({ step, intro, showHi, test, onDone }: ActProps<SayStep>) {
           /* ignore */
         }
       } else {
-        // Mic blocked: let the learner say it aloud and carry on
         setNoMic(true);
         setState('ready');
       }
-      return;
     }
   };
 
   return (
     <>
       <div className="prompt">
-        {step.emoji && <div className="big-emoji" style={{ fontSize: 72 }}>{step.emoji}</div>}
-        <div className="big-sentence" style={{ fontSize: step.text.length > 24 ? 24 : 32 }}>{step.text}</div>
+        {step.emoji && <Pic e={step.emoji} size={96} />}
+        <div className="big-sentence" style={{ fontSize: step.text.length > 24 ? 24 : 32 }}>
+          {step.text}
+        </div>
         {step.hi && showHi && <div className="hi muted">{step.hi}</div>}
-        <Speaker audio={[[step.text, 'en']]} size="sm" />
+        <Speaker audio={[[step.text, 'en', 'word']]} size="sm" />
       </div>
       <div className="col" style={{ alignItems: 'center', gap: 14 }}>
         {(recog || rec) && state !== 'done' && state !== 'recorded' && (
           <button className={`mic ${state === 'listening' ? 'on' : ''}`} onClick={listen} disabled={state === 'listening'} aria-label="Speak">
-            🎤
+            <Icon name="mic" size={52} stroke={2.4} />
           </button>
         )}
-        <div className="hi" style={{ fontWeight: 700, textAlign: 'center', minHeight: 26 }}>
-          {state === 'listening'
-            ? showHi
-              ? 'बोलो... मैं सुन रहा हूँ 👂'
-              : 'Speak now... I am listening 👂'
-            : state === 'heard' && heard
-              ? `${showHi ? 'मैंने सुना' : 'I heard'}: “${heard}”`
-              : recog || rec
-                ? showHi
-                  ? 'माइक दबाओ और बोलो'
-                  : 'Tap the mic and say it'
-                : showHi
-                  ? 'ज़ोर से बोलो, फिर आगे बढ़ो'
-                  : 'Say it out loud, then go on'}
+        <div style={{ fontWeight: 700, textAlign: 'center', minHeight: 28 }}>
+          {state === 'listening' ? (
+            <Tr en="Speak now… I am listening" hi="बोलो… मैं सुन रहा हूँ" />
+          ) : state === 'heard' && heard ? (
+            <span>I heard: “{heard}”</span>
+          ) : recog || rec ? (
+            <Tr en="Tap the mic and say it" hi="माइक दबाओ और बोलो" />
+          ) : (
+            <Tr en="Say it out loud, then go on" hi="ज़ोर से बोलो, फिर आगे बढ़ो" />
+          )}
         </div>
         {state === 'recorded' && clip && (
           <div className="col" style={{ width: '100%' }}>
             <button className="btn ghost block" onClick={() => void new Audio(clip).play().catch(() => {})}>
-              ▶️ {showHi ? 'अपनी आवाज़ सुनो' : 'Hear yourself'}
+              <Icon name="play" size={22} /> <Tr en="Hear yourself" hi="अपनी आवाज़ सुनो" />
             </button>
             <div className="row">
               <button className="btn ghost" style={{ flex: 1 }} onClick={() => setState('ready')}>
-                🔁 {showHi ? 'फिर से' : 'Again'}
+                <Icon name="repeat" size={22} /> Again
               </button>
               <button className="btn good" style={{ flex: 1 }} onClick={() => finish(true, false)}>
-                👍 {showHi ? 'मैंने बोला' : 'I said it'}
+                <Icon name="check" size={24} stroke={3} /> I said it
               </button>
             </div>
           </div>
         )}
         {!recog && !rec && state !== 'done' && (
           <button className="btn good block" onClick={() => finish(true, false)}>
-            👍 {showHi ? 'मैंने बोला' : 'I said it'}
+            <Icon name="check" size={24} stroke={3} /> <Tr en="I said it" hi="मैंने बोला" />
           </button>
         )}
         {(test || recog) && state !== 'done' && state !== 'listening' && (test || tries > 0) && (
           <button className="btn ghost small" onClick={() => finish(false, false)}>
-            {showHi ? 'बाद में करूँगा ⏭️' : 'Skip for now ⏭️'}
+            Skip for now
           </button>
         )}
       </div>
@@ -173,24 +170,24 @@ export function Write({ step, intro, showHi, onDone, onWrite }: ActProps<WriteSt
   return (
     <>
       <div className="card col">
-        <div style={{ fontSize: 22, fontWeight: 800 }}>{step.promptEn}</div>
+        <div className="read" style={{ fontSize: 23, fontWeight: 700 }}>{step.promptEn}</div>
         {showHi && <div className="hi muted">{step.promptHi}</div>}
       </div>
-      <textarea className="text-input" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="I ..." autoCapitalize="sentences" />
+      <textarea id="write-box" className="text-input read" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="I ..." autoCapitalize="sentences" />
       <div className="row">
-        <button className="btn ghost" onClick={() => onDone({ correct: true, assisted: false, scored: false })}>
-          ⏭️
+        <button className="btn ghost" onClick={() => onDone({ correct: true, assisted: false, scored: false })} aria-label="Skip">
+          <Icon name="next" size={24} />
         </button>
         <button
-          className="btn teal block"
+          className="btn good block"
           disabled={text.trim().split(/\s+/).length < 2}
           onClick={() => {
             sfx.correct();
-            void speak(text.trim());
+            void speak(text.trim(), 'en', { tone: 'story' });
             onWrite(text.trim());
           }}
         >
-          💾 {showHi ? 'सेव करो' : 'Save'}
+          <Icon name="check" size={24} stroke={3} /> <Tr en="Save" hi="सेव करो" />
         </button>
       </div>
     </>
